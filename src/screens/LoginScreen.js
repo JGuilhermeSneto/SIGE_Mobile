@@ -122,7 +122,7 @@ export default function LoginScreen({ navigation }) {
       setLoading(false);
       // Navega para a SplashScreen de carregamento antes de ir para a Home
       navigation.replace('Splash', { 
-        nextScreen: 'Home',
+        nextScreen: 'Main',
         message: 'Validando credenciais'
       });
     }, 1500);

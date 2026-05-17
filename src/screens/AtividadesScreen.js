@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,304 +7,510 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
+  Dimensions,
 } from 'react-native';
- 
-const materias = [
-  { id: 1, nome: 'MATEMATICA', professor: 'Fernando Costa', tipo: 'Provas' },
-  { id: 2, nome: 'LINGUA-PORTUGUESA', professor: 'Julia Batola', tipo: 'Provas' },
-  { id: 3, nome: 'FISICA', professor: 'Dani Alves', tipo: 'Provas' },
-  { id: 4, nome: 'FILOSOFIA', professor: 'Reresa Filjo', tipo: 'Provas' },
-  { id: 5, nome: 'INGLES', professor: 'Josue la', tipo: 'Provas' },
-  { id: 6, nome: 'GEOGRAFIA', professor: 'Armando varal', tipo: 'Provas' },
-  { id: 7, nome: 'SOCIOLOGIA', professor: 'Fernando Costa', tipo: 'Provas' },
-  { id: 8, nome: 'SEMINARIO DE PESQUISA', professor: 'Sabrina Silva', tipo: 'Provas' },
-  { id: 9, nome: 'MECANICA', professor: 'Israel Sales', tipo: 'Provas' },
-  { id: 10, nome: 'ELETRICA', professor: 'Jackson Ribeiro', tipo: 'Provas' },
-  { id: 11, nome: 'SISTEMAS DIGITAIS', professor: 'Junko Ikala', tipo: 'Provas' },
-  { id: 12, nome: 'ROBOTICA', professor: 'Thiago Evaralo', tipo: 'Provas' },
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
+
+// Mock Data
+const ALL_ACTIVITIES = [
+  { 
+    id: 1, 
+    titulo: 'Trabalho: Inteligência Artificial e Sociedade', 
+    disciplina: 'SOCIOLOGIA', 
+    professor: 'Fernando Costa', 
+    tipo: 'trabalhos', 
+    prazo: '20/05/2026 - 23:59', 
+    status: 'pendente',
+    descricao: 'Desenvolver um ensaio crítico sobre os impactos da IA no mercado de trabalho atual.'
+  },
+  { 
+    id: 2, 
+    titulo: 'Lista de Exercícios: Cálculo Diferencial', 
+    disciplina: 'MATEMÁTICA', 
+    professor: 'Fernando Costa', 
+    tipo: 'atividades', 
+    prazo: '18/05/2026 - 18:00', 
+    status: 'entregue',
+    descricao: 'Resolver os exercícios da página 45 a 50 do livro didático.',
+    nota: '9.5'
+  },
+  { 
+    id: 3, 
+    titulo: 'Prova Trimestral: Óptica e Ondulatória', 
+    disciplina: 'FÍSICA', 
+    professor: 'Dani Alves', 
+    tipo: 'provas', 
+    data: '22/05/2026', 
+    status: 'agendado',
+    descricao: 'Conteúdo: Reflexão, Refração, Lentes e Fenômenos Ondulatórios.'
+  },
+  { 
+    id: 4, 
+    titulo: 'Trabalho em Grupo: Sustentabilidade', 
+    disciplina: 'GEOGRAFIA', 
+    professor: 'Armando Varal', 
+    tipo: 'trabalhos', 
+    prazo: '25/05/2026 - 23:59', 
+    status: 'pendente',
+    descricao: 'Criar um projeto de reciclagem para a escola utilizando materiais de baixo custo.'
+  },
+  { 
+    id: 5, 
+    titulo: 'Redação: O Papel da Tecnologia na Educação', 
+    disciplina: 'LINGUA PORTUGUESA', 
+    professor: 'Julia Batola', 
+    tipo: 'atividades', 
+    prazo: '16/05/2026 - 23:59', 
+    status: 'corrigido',
+    descricao: 'Escrever um texto dissertativo-argumentativo entre 20 e 30 linhas.',
+    nota: '8.0',
+    feedback: true
+  },
 ];
- 
-function MateriaCard({ materia }) {
+
+const COLORS = {
+  bgBase: '#090e1a',
+  bgSurface: '#0f1729',
+  bgElevated: '#131e33',
+  bgHover: '#1a2844',
+  accentViolet: '#7c6fff',
+  accentCyan: '#22d3ee',
+  accentEmerald: '#34d399',
+  accentAmber: '#fbbf24',
+  accentRuby: '#f87171',
+  textPrimary: '#ffffff',
+  textSecondary: '#cbd5e1',
+  textMuted: '#94a3b8',
+  textDim: '#64748b',
+  borderSubtle: 'rgba(255, 255, 255, 0.06)',
+  borderMid: 'rgba(255, 255, 255, 0.11)',
+};
+
+function ActivityCard({ item }) {
+  const isPendente = item.status === 'pendente' || item.status === 'agendado';
+  const isEntregue = item.status === 'entregue';
+  const isCorrigido = item.status === 'corrigido';
+
   return (
-    <TouchableOpacity style={styles.card} activeOpacity={0.8}>
-      {/* Topo do card: nome + três pontos */}
+    <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitulo}>{materia.nome}</Text>
-        <Text style={styles.tresPontos}>···</Text>
-      </View>
- 
-      {/* Corpo: avatar + info + ícone pendente */}
-      <View style={styles.cardBody}>
-        {/* Avatar círculo */}
-        <View style={styles.avatar}>
-          <View style={styles.avatarIcon} />
-        </View>
- 
-        {/* Professor + tipo */}
-        <View style={styles.cardInfo}>
-          <Text style={styles.professorLabel}>PROFESSOR: {materia.professor}</Text>
-          <Text style={styles.tipoText}>{materia.tipo}</Text>
-        </View>
- 
-        {/* Ícone pendente (dourado) */}
-        <View style={styles.pendenteContainer}>
-          <View style={styles.pendenteIcone}>
-            <Text style={styles.pendenteIconeText}>⊙</Text>
+        <View style={styles.profInfo}>
+          <View style={styles.avatar}>
+            <MaterialCommunityIcons name="account" size={18} color={COLORS.textMuted} />
           </View>
-          <Text style={styles.pendenteLabel}>pendente</Text>
+          <View>
+            <Text style={styles.disciplinaText}>{item.disciplina}</Text>
+            <Text style={styles.professorText}>Prof. {item.professor}</Text>
+          </View>
+        </View>
+        
+        <View style={[
+          styles.statusBadge, 
+          isPendente && styles.statusPendente,
+          isEntregue && styles.statusEntregue,
+          isCorrigido && styles.statusCorrigido
+        ]}>
+          <MaterialCommunityIcons 
+            name={isPendente ? "clock-outline" : (isEntregue ? "send-outline" : "check-all")} 
+            size={12} 
+            color={isPendente ? COLORS.accentAmber : (isEntregue ? COLORS.accentEmerald : COLORS.accentCyan)} 
+          />
+          <Text style={[
+            styles.statusText,
+            isPendente && { color: COLORS.accentAmber },
+            isEntregue && { color: COLORS.accentEmerald },
+            isCorrigido && { color: COLORS.accentCyan }
+          ]}>
+            {item.status.toUpperCase()}
+          </Text>
         </View>
       </View>
-    </TouchableOpacity>
+
+      <Text style={styles.tituloText}>{item.titulo}</Text>
+
+      <View style={styles.infoRow}>
+        <MaterialCommunityIcons name="calendar-range" size={14} color={COLORS.accentViolet} />
+        <Text style={styles.infoLabel}>
+          {item.tipo === 'provas' ? 'Data: ' : 'Prazo: '}
+          <Text style={styles.infoValue}>{item.tipo === 'provas' ? item.data : item.prazo}</Text>
+        </Text>
+      </View>
+
+      <Text style={styles.descText} numberOfLines={2}>
+        {item.descricao}
+      </Text>
+
+      <View style={styles.cardFooter}>
+        <View style={styles.footerLeft}>
+          {item.nota && (
+            <Text style={styles.notaText}>Nota: {item.nota}</Text>
+          )}
+          {item.feedback && (
+            <View style={styles.feedbackBadge}>
+              <MaterialCommunityIcons name="comment-text-outline" size={10} color={COLORS.accentViolet} />
+              <Text style={styles.feedbackText}>Correção</Text>
+            </View>
+          )}
+        </View>
+
+        <TouchableOpacity style={styles.btnAction}>
+          <Text style={styles.btnActionText}>
+            {isEntregue || isCorrigido ? 'Ver / Editar' : 'Entregar Agora'}
+          </Text>
+          <MaterialCommunityIcons 
+            name={isEntregue || isCorrigido ? "eye-outline" : "upload-outline"} 
+            size={14} 
+            color={COLORS.textPrimary} 
+          />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
- 
-export default function AtividadesScreen() {
+
+export default function AtividadesScreen({ navigation }) {
+  const [activeTab, setActiveTab] = useState('trabalhos');
+
+  const filteredActivities = ALL_ACTIVITIES.filter(act => act.tipo === activeTab);
+
+  const TabButton = ({ id, label, icon }) => (
+    <TouchableOpacity 
+      style={[styles.tabBtn, activeTab === id && styles.tabBtnActive]} 
+      onPress={() => setActiveTab(id)}
+    >
+      <MaterialCommunityIcons 
+        name={icon} 
+        size={18} 
+        color={activeTab === id ? '#fff' : COLORS.textMuted} 
+      />
+      <Text style={[styles.tabBtnText, activeTab === id && styles.tabBtnTextActive]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0a0f1e" />
- 
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.bgBase} />
+      
       {/* Header SIGE */}
       <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoIcone}>
-            <Text style={styles.logoIconeText}>📖</Text>
+        <View style={styles.logoRow}>
+          <View style={styles.logoBox}>
+            <Text style={{ fontSize: 18 }}>📖</Text>
           </View>
-          <Text style={styles.logoTexto}>SIGE</Text>
+          <Text style={styles.logoText}>SIGE</Text>
         </View>
       </View>
- 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Botão voltar ao painel */}
-        <TouchableOpacity style={styles.voltarBtn} activeOpacity={0.7}>
-          <Text style={styles.voltarTexto}>← voltar ao painel</Text>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Voltar */}
+        <TouchableOpacity 
+          style={styles.backBtn} 
+          onPress={() => navigation.goBack()}
+        >
+          <MaterialCommunityIcons name="arrow-left" size={16} color={COLORS.textMuted} />
+          <Text style={styles.backBtnText}>Voltar ao Painel</Text>
         </TouchableOpacity>
- 
+
         {/* Breadcrumb */}
-        <Text style={styles.breadcrumb}>
-          <Text style={styles.breadcrumbNormal}>SIGE - </Text>
-          <Text style={styles.breadcrumbDestaque}>PORTAL DO ALUNO</Text>
-        </Text>
- 
-        {/* Botão Atividades */}
-        <TouchableOpacity style={styles.atividadesBtn} activeOpacity={0.85}>
-          <Text style={styles.atividadesBtnTexto}>Atividades</Text>
-        </TouchableOpacity>
- 
-        {/* Grid de matérias (2 colunas) */}
-        <View style={styles.grid}>
-          {materias.map((m) => (
-            <MateriaCard key={m.id} materia={m} />
-          ))}
+        <View style={styles.breadcrumb}>
+          <Text style={styles.breadcrumbText}>SIGE · </Text>
+          <Text style={styles.breadcrumbHighlight}>PORTAL DO ALUNO</Text>
         </View>
- 
-        <View style={styles.bottomSpacing} />
+
+        <Text style={styles.pageTitle}>
+          Minhas <Text style={{ color: COLORS.accentViolet }}>Atividades</Text>
+        </Text>
+
+        {/* Tabs */}
+        <View style={styles.tabsContainer}>
+          <TabButton id="trabalhos" label="Trabalhos" icon="file-document-outline" />
+          <TabButton id="atividades" label="Atividades" icon="clipboard-list-outline" />
+          <TabButton id="provas" label="Provas" icon="school-outline" />
+        </View>
+
+        {/* List */}
+        <View style={styles.listContainer}>
+          {filteredActivities.length > 0 ? (
+            filteredActivities.map(item => (
+              <ActivityCard key={item.id} item={item} />
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons name="folder-open-outline" size={48} color={COLORS.bgHover} />
+              <Text style={styles.emptyText}>Nenhum registro encontrado nesta categoria.</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
- 
-const CARD_BORDER = '#1e4d6b';
-const GOLD = '#c9a227';
-const GOLD_DARK = '#a07c10';
-const BG = '#0a0f1e';
-const CARD_BG = '#0d1a2b';
-const TEAL = '#00e5ff';
- 
+
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: COLORS.bgBase,
   },
- 
-  /* ── Header ── */
   header: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#1a2a3a',
-    backgroundColor: BG,
+    borderBottomColor: COLORS.borderSubtle,
   },
-  logoContainer: {
+  logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
-  logoIcone: {
+  logoBox: {
     width: 38,
     height: 38,
     borderRadius: 8,
-    backgroundColor: '#1a2a3a',
+    backgroundColor: COLORS.bgElevated,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoIconeText: {
-    fontSize: 20,
-  },
-  logoTexto: {
-    color: '#ffffff',
+  logoText: {
+    color: '#fff',
     fontSize: 22,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 2,
   },
- 
-  /* ── Scroll ── */
-  scrollView: {
+  content: {
     flex: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 20,
   },
- 
-  /* ── Voltar ── */
-  voltarBtn: {
-    marginTop: 14,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#2a3a4a',
-    borderRadius: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: '#0d1a2b',
-  },
-  voltarTexto: {
-    color: '#aab8c8',
-    fontSize: 13,
-  },
- 
-  /* ── Breadcrumb ── */
-  breadcrumb: {
-    marginTop: 12,
-    fontSize: 13,
-    letterSpacing: 0.5,
-  },
-  breadcrumbNormal: {
-    color: '#aab8c8',
-  },
-  breadcrumbDestaque: {
-    color: TEAL,
-    fontWeight: '600',
-  },
- 
-  /* ── Botão Atividades ── */
-  atividadesBtn: {
-    marginTop: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    backgroundColor: '#7b3ff5',
-    alignSelf: 'flex-start',
-  },
-  atividadesBtnTexto: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 0.3,
-  },
- 
-  /* ── Grid ── */
-  grid: {
-    marginTop: 18,
+  backBtn: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
- 
-  /* ── Card ── */
-  card: {
-    width: '48%',
-    backgroundColor: CARD_BG,
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: CARD_BORDER,
+    borderColor: COLORS.borderSubtle,
+    alignSelf: 'flex-start',
+  },
+  backBtnText: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  breadcrumb: {
+    flexDirection: 'row',
+    marginTop: 15,
+  },
+  breadcrumbText: {
+    color: COLORS.textMuted,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  breadcrumbHighlight: {
+    color: COLORS.accentCyan,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#fff',
+    marginTop: 5,
+    marginBottom: 25,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.bgSurface,
+    padding: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+    marginBottom: 25,
+    gap: 4,
+  },
+  tabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
     borderRadius: 10,
-    padding: 10,
-    marginBottom: 4,
+  },
+  tabBtnActive: {
+    backgroundColor: COLORS.accentViolet,
+    shadowColor: COLORS.accentViolet,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  tabBtnText: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  tabBtnTextActive: {
+    color: '#fff',
+  },
+  listContainer: {
+    gap: 16,
+  },
+  card: {
+    backgroundColor: COLORS.bgSurface,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 15,
+  },
+  profInfo: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 10,
   },
-  cardTitulo: {
-    color: TEAL,
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.bgElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.borderMid,
+  },
+  disciplinaText: {
+    color: COLORS.accentViolet,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 0.5,
-    flex: 1,
   },
-  tresPontos: {
-    color: '#5a7a9a',
-    fontSize: 14,
-    letterSpacing: 1,
-    marginLeft: 4,
+  professorText: {
+    color: COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
   },
-  cardBody: {
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+  },
+  statusPendente: {
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+  },
+  statusEntregue: {
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+  },
+  statusCorrigido: {
+    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  tituloText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    marginBottom: 12,
   },
- 
-  /* Avatar */
-  avatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#1e3050',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#2a4060',
-  },
-  avatarIcon: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: '#3a5070',
-  },
- 
-  /* Info */
-  cardInfo: {
-    flex: 1,
-  },
-  professorLabel: {
-    color: '#5a8aaa',
-    fontSize: 8,
-    letterSpacing: 0.2,
-    marginBottom: 3,
-  },
-  tipoText: {
-    color: '#d0e8f8',
+  infoLabel: {
+    color: COLORS.textSecondary,
     fontSize: 13,
-    fontWeight: '600',
   },
- 
-  /* Pendente */
-  pendenteContainer: {
+  infoValue: {
+    fontWeight: '700',
+  },
+  descText: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 15,
+  },
+  cardFooter: {
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderSubtle,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 2,
   },
-  pendenteIcone: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    backgroundColor: GOLD_DARK,
+  footerLeft: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: GOLD,
+    gap: 10,
   },
-  pendenteIconeText: {
-    color: GOLD,
+  notaText: {
+    color: COLORS.accentEmerald,
     fontSize: 16,
     fontWeight: '800',
   },
-  pendenteLabel: {
-    color: GOLD,
-    fontSize: 8,
-    fontWeight: '600',
-    letterSpacing: 0.3,
+  feedbackBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(124, 111, 255, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
- 
-  bottomSpacing: {
-    height: 30,
+  feedbackText: {
+    color: COLORS.accentViolet,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  btnAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: COLORS.bgHover,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderMid,
+  },
+  btnActionText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    backgroundColor: COLORS.bgSurface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+    borderStyle: 'dashed',
+  },
+  emptyText: {
+    color: COLORS.textDim,
+    fontSize: 13,
+    marginTop: 15,
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
