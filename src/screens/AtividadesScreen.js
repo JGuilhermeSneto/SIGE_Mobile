@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   SafeAreaView,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getAtividades } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -172,8 +174,75 @@ function ActivityCard({ item }) {
 
 export default function AtividadesScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('trabalhos');
+  const [activities, setActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const filteredActivities = ALL_ACTIVITIES.filter(act => act.tipo === activeTab);
+  const fetchActivities = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getAtividades();
+      
+      const formatDate = (dateStr) => {
+        if (!dateStr) return '—';
+        try {
+          const d = new Date(dateStr);
+          if (isNaN(d.getTime())) return dateStr;
+          return d.toLocaleDateString('pt-BR') + ' - ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+          return dateStr;
+        }
+      };
+
+      const formatDateOnly = (dateStr) => {
+        if (!dateStr) return '—';
+        try {
+          const parts = dateStr.split('-');
+          if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+          }
+          return dateStr;
+        } catch (e) {
+          return dateStr;
+        }
+      };
+
+      const mapped = (data || []).map(act => {
+        const isExpired = act.prazo_final ? new Date() > new Date(act.prazo_final) : (act.data ? new Date() > new Date(act.data) : false);
+        let resolvedStatus = 'pendente';
+        if (act.tipo === 'PROVA') {
+          resolvedStatus = isExpired ? 'encerrado' : 'agendado';
+        } else {
+          resolvedStatus = isExpired ? 'encerrado' : 'pendente';
+        }
+
+        return {
+          id: act.id,
+          titulo: act.titulo,
+          disciplina: act.disciplina_nome || 'DISCIPLINA',
+          professor: act.professor_nome || 'Professor',
+          tipo: act.tipo === 'TRABALHO' ? 'trabalhos' : (act.tipo === 'ATIVIDADE' ? 'atividades' : 'provas'),
+          prazo: act.prazo_final ? formatDate(act.prazo_final) : '—',
+          data: act.data ? formatDateOnly(act.data) : '—',
+          status: resolvedStatus,
+          descricao: act.descricao || 'Sem descrição cadastrada.',
+        };
+      });
+
+      setActivities(mapped);
+    } catch (err) {
+      console.error(err);
+      setError("Não foi possível carregar as atividades.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchActivities();
+  }, []);
+
+  const filteredActivities = activities.filter(act => act.tipo === activeTab);
 
   const TabButton = ({ id, label, icon }) => (
     <TouchableOpacity 
@@ -190,6 +259,15 @@ export default function AtividadesScreen({ navigation }) {
       </Text>
     </TouchableOpacity>
   );
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.bgBase} />
+        <ActivityIndicator size="large" color={COLORS.accentViolet} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

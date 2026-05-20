@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, Modal, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getRoteiro } from '../services/api';
 
 const cores = {
   fundoPrincipal: "#050811",
@@ -84,14 +85,73 @@ function CartaoAula({ aula }) {
 export default function RoteiroScreen({ navigation }) {
   const [indiceAtual, setIndiceAtual] = useState(0);
   const [menuAberto, setMenuAberto] = useState(false);
+  const [materias, setMaterias] = useState([]);
+  const [dadosAulas, setDadosAulas] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const materiaAtual = materias[indiceAtual];
-  const aulas = dadosAulas[materiaAtual.id] || [];
+  const fetchRoteiro = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getRoteiro();
+      setMaterias(data.materias || []);
+      setDadosAulas(data.aulas || {});
+    } catch (err) {
+      console.error(err);
+      setError("Não foi possível carregar a trilha educacional.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoteiro();
+  }, []);
 
   function selecionarMateria(indice) {
     setIndiceAtual(indice);
     setMenuAberto(false);
   }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.tela, { justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="rgba(5,8,17,0.97)" />
+        <ActivityIndicator size="large" color={cores.ciano} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error || materias.length === 0) {
+    return (
+      <SafeAreaView style={styles.tela}>
+        <StatusBar barStyle="light-content" backgroundColor="rgba(5,8,17,0.97)" />
+        <View style={styles.barraSuperior}>
+          <View style={styles.logoEnvolto}>
+            <View style={styles.logoBox}>
+              <Text style={{ fontSize: 18 }}>📖</Text>
+            </View>
+            <Text style={styles.logoTexto}>SIGE</Text>
+          </View>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>A</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ color: cores.cinzaClaro, fontSize: 14, textAlign: 'center', marginBottom: 15 }}>
+            {error || "Nenhuma matéria cadastrada."}
+          </Text>
+          <TouchableOpacity style={styles.botaoVoltar} onPress={() => navigation.goBack()}>
+            <MaterialCommunityIcons name="arrow-left" size={14} color={cores.cinzaClaro} />
+            <Text style={styles.textoBotaoVoltar}>Voltar ao Painel</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const materiaAtual = materias[indiceAtual];
+  const aulas = materiaAtual ? (dadosAulas[String(materiaAtual.id)] || []) : [];
 
   return (
     <SafeAreaView style={styles.tela}>

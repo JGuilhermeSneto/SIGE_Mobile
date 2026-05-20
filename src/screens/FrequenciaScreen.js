@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getBoletim } from '../services/api';
 
 const cores = {
   fundoPrincipal: "#050811",
@@ -18,13 +19,42 @@ const cores = {
   bordaRoxo: "rgba(74,66,149,0.28)",
 };
 
-const disciplinasFrequencia = [
-  { id: 1, nome: "Matematica",        professor: "Prof. Fernanda Costa Vieira",   porcentagem: 0 },
-  { id: 2, nome: "Lingua Portuguesa", professor: "Prof. Davi Alves Guedes",       porcentagem: 0 },
-  { id: 3, nome: "Fisica",            professor: "Prof. Eduardo Pereira Pereira", porcentagem: 0 },
-];
-
 export default function FrequenciaScreen({ navigation }) {
+  const [boletimData, setBoletimData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchFrequencia = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getBoletim();
+      setBoletimData(data);
+    } catch (err) {
+      console.error(err);
+      setError("Não foi possível carregar a frequência.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFrequencia();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[estilos.tela, { justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="rgba(5,8,17,0.97)" />
+        <ActivityIndicator size="large" color={cores.ciano} />
+      </SafeAreaView>
+    );
+  }
+
+  const totalFaltas = boletimData ? boletimData.boletim.reduce((acc, curr) => acc + (curr.faltas || 0), 0) : 0;
+  const totalAulas = boletimData ? boletimData.boletim.reduce((acc, curr) => acc + (curr.total || 0), 0) : 0;
+  const totalPresencas = totalAulas - totalFaltas;
+  const frequenciaGeral = boletimData ? (boletimData.frequencia_total ?? 100) : 100;
+
   return (
     <SafeAreaView style={estilos.tela}>
       <StatusBar barStyle="light-content" backgroundColor="rgba(5,8,17,0.97)" />
@@ -56,57 +86,70 @@ export default function FrequenciaScreen({ navigation }) {
                 <View style={estilos.pontoFrequencia} />
                 <Text style={estilos.tituloFrequencia}>Minha Frequência</Text>
               </View>
-              <Text style={estilos.subtituloFrequencia}>1o Ano B (2025) — Manhã</Text>
+              <Text style={estilos.subtituloFrequencia}>Frequência geral do ano letivo</Text>
             </View>
             <View style={estilos.emblemaFrequencia}>
-              <MaterialCommunityIcons name="information-variant" size={16} color="#fff" />
+              <MaterialCommunityIcons name="calendar-check" size={16} color="#fff" />
             </View>
           </View>
 
-          <View style={estilos.estadoVazio}>
-            <View style={estilos.iconeVazio}>
-              <MaterialCommunityIcons name="calendar-remove" size={28} color={cores.cinza} style={{opacity: 0.7}} />
-            </View>
-            <Text style={estilos.textoVazio}>
-              Nenhuma informação de frequência disponível ainda.
-            </Text>
-          </View>
-        </View>
-
-        <View style={estilos.gradeResumo}>
-          <View style={estilos.itemResumo}>
-            <Text style={estilosDinamicos.valorResumo(cores.vermelho)}>—</Text>
-            <Text style={estilos.rotuloResumo}>Total de Faltas</Text>
-          </View>
-          <View style={estilos.itemResumo}>
-            <Text style={estilosDinamicos.valorResumo(cores.verde)}>—</Text>
-            <Text style={estilos.rotuloResumo}>Presenças</Text>
-          </View>
-          <View style={estilos.itemResumo}>
-            <Text style={estilosDinamicos.valorResumo(cores.ciano)}>—%</Text>
-            <Text style={estilos.rotuloResumo}>Frequência Geral</Text>
-          </View>
-        </View>
-
-        <Text style={estilos.rotuloSecao}>Por Disciplina</Text>
-
-        {disciplinasFrequencia.map((d) => (
-          <View key={d.id} style={estilos.linhaDisciplina}>
-            <View style={estilos.infoDisciplina}>
-              <Text style={estilos.nomeDisciplina}>{d.nome}</Text>
-              <Text style={estilos.professorDisciplina}>{d.professor}</Text>
-              <View style={estilos.fundoBarra}>
-                <View style={estilosDinamicos.preenchimentoBarra(d.porcentagem)} />
+          {error || !boletimData || boletimData.boletim.length === 0 ? (
+            <View style={estilos.estadoVazio}>
+              <View style={estilos.iconeVazio}>
+                <MaterialCommunityIcons name="calendar-remove" size={28} color={cores.cinza} style={{opacity: 0.7}} />
               </View>
-              <Text style={estilos.rotuloBarra}>
-                {d.porcentagem === 0 ? "Sem registros" : `${d.porcentagem}% de frequência`}
+              <Text style={estilos.textoVazio}>
+                {error || "Nenhuma informação de frequência disponível ainda."}
               </Text>
             </View>
-            <Text style={estilos.porcentagemDisciplina}>
-              {d.porcentagem === 0 ? "—%" : `${d.porcentagem}%`}
-            </Text>
-          </View>
-        ))}
+          ) : (
+            <View style={{ padding: 22, alignItems: 'center', gap: 10 }}>
+              <Text style={{ fontSize: 48, fontWeight: '800', color: cores.ciano }}>{frequenciaGeral}%</Text>
+              <Text style={{ fontSize: 12, color: cores.cinzaClaro, textAlign: 'center', lineHeight: 18 }}>
+                Você compareceu a <Text style={{ color: cores.verde, fontWeight: '700' }}>{totalPresencas}</Text> de <Text style={{ fontWeight: '700' }}>{totalAulas}</Text> aulas registradas.
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {!error && boletimData && boletimData.boletim.length > 0 && (
+          <>
+            <View style={estilos.gradeResumo}>
+              <View style={estilos.itemResumo}>
+                <Text style={estilosDinamicos.valorResumo(cores.vermelho)}>{totalFaltas}</Text>
+                <Text style={estilos.rotuloResumo}>Total de Faltas</Text>
+              </View>
+              <View style={estilos.itemResumo}>
+                <Text style={estilosDinamicos.valorResumo(cores.verde)}>{totalPresencas}</Text>
+                <Text style={estilos.rotuloResumo}>Presenças</Text>
+              </View>
+              <View style={estilos.itemResumo}>
+                <Text style={estilosDinamicos.valorResumo(cores.ciano)}>{frequenciaGeral}%</Text>
+                <Text style={estilos.rotuloResumo}>Frequência Geral</Text>
+              </View>
+            </View>
+
+            <Text style={estilos.rotuloSecao}>Por Disciplina</Text>
+
+            {boletimData.boletim.map((d) => (
+              <View key={d.id} style={estilos.linhaDisciplina}>
+                <View style={estilos.infoDisciplina}>
+                  <Text style={estilos.nomeDisciplina}>{d.nome}</Text>
+                  <Text style={estilos.professorDisciplina}>{d.prof}</Text>
+                  <View style={estilos.fundoBarra}>
+                    <View style={estilosDinamicos.preenchimentoBarra(d.freq)} />
+                  </View>
+                  <Text style={estilos.rotuloBarra}>
+                    {d.faltas} {d.faltas === 1 ? "falta" : "faltas"} em {d.total} aulas registradas
+                  </Text>
+                </View>
+                <Text style={[estilos.porcentagemDisciplina, { color: d.freq >= 75 ? cores.verde : cores.vermelho }]}>
+                  {d.freq}%
+                </Text>
+              </View>
+            ))}
+          </>
+        )}
         <View style={{height: 40}}/>
       </ScrollView>
     </SafeAreaView>
@@ -130,7 +173,7 @@ const estilos = StyleSheet.create({
   pontoFrequencia: { width: 10, height: 10, borderRadius: 5, backgroundColor: cores.roxoClaro },
   tituloFrequencia: { fontSize: 15, fontWeight: '700', color: cores.branco },
   subtituloFrequencia: { fontSize: 10, color: cores.cinza, marginTop: 3, paddingLeft: 18 },
-  emblemaFrequencia: { width: 30, height: 30, borderRadius: 15, backgroundColor: cores.vermelho, alignItems: 'center', justifyContent: 'center' },
+  emblemaFrequencia: { width: 30, height: 30, borderRadius: 15, backgroundColor: cores.roxo, alignItems: 'center', justifyContent: 'center' },
   estadoVazio: { alignItems: 'center', justifyContent: 'center', paddingVertical: 50, paddingHorizontal: 20, gap: 12 },
   iconeVazio: { width: 56, height: 56, backgroundColor: "rgba(71,84,104,0.15)", borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
   textoVazio: { fontSize: 13, color: cores.cinza, textAlign: 'center', lineHeight: 18 },

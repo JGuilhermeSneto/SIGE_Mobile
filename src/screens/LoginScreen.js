@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
+import { login } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -74,6 +75,7 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const logoRotate = useRef(new Animated.Value(0)).current;
@@ -116,16 +118,35 @@ export default function LoginScreen({ navigation }) {
     return () => animations.stop();
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    if (!email || !password) {
+      setErrorMessage('Por favor, preencha todos os campos.');
+      return;
+    }
     setLoading(true);
-    setTimeout(() => {
+    setErrorMessage('');
+    try {
+      await login(email, password);
+      
+      // Feedback visual de sucesso
+      setShowFeedback(true);
+      Animated.parallel([
+        Animated.timing(feedbackFade, { toValue: 1, duration: 450, useNativeDriver: true }),
+        Animated.spring(feedbackScale, { toValue: 1, friction: 6, tension: 40, useNativeDriver: true })
+      ]).start();
+
+      setTimeout(() => {
+        setLoading(false);
+        setShowFeedback(false);
+        navigation.replace('Splash', { 
+          nextScreen: 'Main',
+          message: 'Carregando painel...'
+        });
+      }, 1500);
+    } catch (err) {
       setLoading(false);
-      // Navega para a SplashScreen de carregamento antes de ir para a Home
-      navigation.replace('Splash', { 
-        nextScreen: 'Main',
-        message: 'Validando credenciais'
-      });
-    }, 1500);
+      setErrorMessage(err.message || 'Erro de conexão. Verifique suas credenciais.');
+    }
   };
 
   const rotation = logoRotate.interpolate({
@@ -236,6 +257,10 @@ export default function LoginScreen({ navigation }) {
                 </View>
               </View>
 
+              {errorMessage ? (
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              ) : null}
+
               <TouchableOpacity style={styles.connectBtn} onPress={handleLogin} disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.connectBtnText}>CONECTAR</Text>}
               </TouchableOpacity>
@@ -292,6 +317,13 @@ const styles = StyleSheet.create({
   forgotBtn: { marginTop: 25, alignItems: 'center' },
   forgotBtnText: { color: '#475569', fontSize: 13 },
   particle: { position: 'absolute', borderRadius: 10, zIndex: 0 },
+  errorText: {
+    color: '#f87171',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
   
   // Feedback Overlay Styles
   feedbackOverlay: {

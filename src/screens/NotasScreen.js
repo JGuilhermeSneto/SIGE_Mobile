@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -12,6 +12,8 @@ import {
   UIManager
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getBoletim } from '../services/api';
+import { ActivityIndicator } from 'react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -139,6 +141,56 @@ function NotaAccordion({ item }) {
 }
 
 export default function NotasScreen({ navigation }) {
+  const [loading, setLoading] = useState(true);
+  const [boletimData, setBoletimData] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBoletim = async () => {
+      try {
+        const data = await getBoletim();
+        if (isMounted) {
+          setBoletimData(data);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error(err);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    fetchBoletim();
+    return () => { isMounted = false; };
+  }, []);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.bgBase} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.accentViolet} />
+          <Text style={styles.loadingText}>Carregando boletim escolar...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!boletimData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.bgBase} />
+        <View style={styles.loadingContainer}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={48} color={COLORS.accentRuby} />
+          <Text style={styles.errorText}>Erro ao carregar boletim.</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => { setLoading(true); }}>
+            <Text style={styles.retryText}>Tentar Novamente</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.bgBase} />
@@ -160,12 +212,12 @@ export default function NotasScreen({ navigation }) {
         <View style={styles.heroContainer}>
           <View style={styles.heroCard}>
             <MaterialCommunityIcons name="chart-box" size={32} color={COLORS.accentEmerald} style={{ marginBottom: 10 }} />
-            <Text style={styles.heroValue}>7.8</Text>
+            <Text style={styles.heroValue}>{boletimData.media_geral.toFixed(1)}</Text>
             <Text style={styles.heroLabel}>Média Geral</Text>
           </View>
           <View style={styles.heroCard}>
             <MaterialCommunityIcons name="calendar-check" size={32} color={COLORS.accentCyan} style={{ marginBottom: 10 }} />
-            <Text style={styles.heroValue}>86%</Text>
+            <Text style={styles.heroValue}>{boletimData.frequencia_total}%</Text>
             <Text style={styles.heroLabel}>Frequência Total</Text>
           </View>
         </View>
@@ -179,9 +231,13 @@ export default function NotasScreen({ navigation }) {
 
         {/* Lista de Disciplinas */}
         <View style={styles.listContainer}>
-          {DISCIPLINAS_NOTAS.map(disc => (
-            <NotaAccordion key={disc.id} item={disc} />
-          ))}
+          {boletimData.boletim && boletimData.boletim.length > 0 ? (
+            boletimData.boletim.map(disc => (
+              <NotaAccordion key={disc.id} item={disc} />
+            ))
+          ) : (
+            <Text style={styles.emptyText}>Nenhuma nota registrada até o momento.</Text>
+          )}
         </View>
 
       </ScrollView>
@@ -371,6 +427,12 @@ const styles = StyleSheet.create({
   freqText: {
     fontSize: 12,
     color: COLORS.textSecondary
-  }
+  },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bgBase, gap: 15 },
+  loadingText: { color: COLORS.textSecondary, fontSize: 14, fontWeight: '600' },
+  emptyText: { color: COLORS.textDim, fontSize: 12, fontStyle: 'italic', textAlign: 'center', marginVertical: 20 },
+  retryBtn: { marginTop: 15, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: COLORS.accentViolet, borderRadius: 8 },
+  retryText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  errorText: { color: COLORS.accentRuby, fontSize: 14, fontWeight: '600', marginTop: 10 }
 });
 

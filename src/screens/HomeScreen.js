@@ -15,6 +15,8 @@ import {
   Image
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getDashboard, getBoletim, logout } from '../services/api';
+import { ActivityIndicator } from 'react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -156,6 +158,69 @@ function DisciplineAccordion({ item }) {
 
 export default function HomeScreen({ navigation }) {
   const [activeDay, setActiveDay] = useState('Seg');
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [boletimData, setBoletimData] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadAllData = async () => {
+      try {
+        const [dash, bol] = await Promise.all([getDashboard(), getBoletim()]);
+        if (isMounted) {
+          setDashboardData(dash);
+          setBoletimData(bol.boletim || []);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar dados:', err);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+    loadAllData();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigation.replace('Login');
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.accentViolet} />
+          <Text style={styles.loadingText}>Sincronizando com o servidor...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!dashboardData) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.loadingContainer}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={48} color={COLORS.accentRuby} />
+          <Text style={styles.errorText}>Erro ao carregar painel.</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={() => { setLoading(true); }}>
+            <Text style={styles.retryText}>Tentar Novamente</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const summaryCards = [
+    { id: 1, title: 'Disciplinas', value: dashboardData.summary.disciplinas.toString(), icon: 'book-open-variant', color: COLORS.accentViolet, screen: 'Materiais' },
+    { id: 2, title: 'Média Geral', value: dashboardData.summary.media_geral.toString(), icon: 'chart-box-outline', color: COLORS.accentEmerald, screen: 'Notas' },
+    { id: 3, title: 'Situação', value: dashboardData.summary.situacao, icon: 'check-decagram', color: COLORS.accentCyan, screen: 'Notas' },
+    { id: 4, title: 'Faltas', value: dashboardData.summary.faltas_detalhe, icon: 'account-alert-outline', color: COLORS.accentRuby, screen: 'Frequencia' },
+  ];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -176,40 +241,42 @@ export default function HomeScreen({ navigation }) {
           
           <View style={styles.headerMain}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.greeting}>Olá, <Text style={styles.nameDestaque}>Guilherme</Text> 👋</Text>
-              <Text style={styles.subGreeting}>3º Ano A · Turno Matutino</Text>
+              <Text style={styles.greeting}>Olá, <Text style={styles.nameDestaque}>{dashboardData.aluno.nome_completo.split(' ')[0]}</Text> 👋</Text>
+              <Text style={styles.subGreeting}>{dashboardData.aluno.turma} · Turno {dashboardData.aluno.turno}</Text>
             </View>
             <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('Perfil')}>
               <View style={styles.avatarCircle}><MaterialCommunityIcons name="account" size={26} color={COLORS.textMuted} /></View>
             </TouchableOpacity>
           </View>
-
+          
           {/* Action Buttons do SIGE */}
           <View style={styles.actionsRow}>
             <TouchableOpacity style={styles.actionBtn}>
               <MaterialCommunityIcons name="file-account" size={16} color={COLORS.textPrimary} />
               <Text style={styles.actionText}>Declaração</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtn}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Notas')}>
               <MaterialCommunityIcons name="printer" size={16} color={COLORS.textPrimary} />
-              <Text style={styles.actionText}>Boletim PDF</Text>
+              <Text style={styles.actionText}>Boletim Escolar</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Parental Control - Glass Design */}
-        <View style={styles.parentalBanner}>
-          <View style={styles.parentalIcon}><MaterialCommunityIcons name="shield-lock" size={20} color="#fff" /></View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.parentalTitle}>Controle Parental Ativo</Text>
-            <Text style={styles.parentalSub}>Acesso monitorado pelos responsáveis</Text>
+        {dashboardData.parental_control.ativo && (
+          <View style={styles.parentalBanner}>
+            <View style={styles.parentalIcon}><MaterialCommunityIcons name="shield-lock" size={20} color="#fff" /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.parentalTitle}>Controle Parental Ativo</Text>
+              <Text style={styles.parentalSub}>Acesso monitorado pelos responsáveis</Text>
+            </View>
+            <View style={styles.parentalBadge}><Text style={styles.parentalBadgeT}>MONITORADO</Text></View>
           </View>
-          <View style={styles.parentalBadge}><Text style={styles.parentalBadgeT}>MONITORADO</Text></View>
-        </View>
+        )}
 
         {/* Resumo Acadêmico */}
         <View style={styles.summaryGrid}>
-          {SUMMARY_CARDS.map(card => (
+          {summaryCards.map(card => (
             <TouchableOpacity 
               key={card.id} 
               style={styles.summaryCard} 
@@ -230,7 +297,11 @@ export default function HomeScreen({ navigation }) {
         {/* Disciplinas e Notas Accordion */}
         <Text style={styles.sectionTitle}><MaterialCommunityIcons name="book-open-variant" size={18} color={COLORS.accentViolet} /> Disciplinas e Notas</Text>
         <View style={styles.accordionList}>
-          {DISCIPLINAS.map(d => <DisciplineAccordion key={d.id} item={d} />)}
+          {boletimData.length > 0 ? (
+            boletimData.map(d => <DisciplineAccordion key={d.id} item={d} />)
+          ) : (
+            <Text style={styles.emptyText}>Nenhuma disciplina encontrada</Text>
+          )}
         </View>
 
         {/* Widgets Grid: Mural e Desempenho */}
@@ -238,12 +309,20 @@ export default function HomeScreen({ navigation }) {
           <View style={[styles.widget, { flex: 1.2 }]}>
             <View style={styles.widgetHeader}>
               <Text style={styles.widgetTitle}><MaterialCommunityIcons name="bullhorn" size={16} color={COLORS.accentCyan} /> Mural</Text>
-              <PulseBadge />
+              {dashboardData.mural && dashboardData.mural.length > 0 && <PulseBadge />}
             </View>
-            <View style={styles.muralContent}>
-              <Text style={styles.muralT} numberOfLines={1}>Reunião de Pais</Text>
-              <Text style={styles.muralS}>Hoje · 19:00</Text>
-            </View>
+            {dashboardData.mural && dashboardData.mural.length > 0 ? (
+              dashboardData.mural.slice(0, 2).map((aviso, idx) => (
+                <View key={aviso.id || idx} style={[styles.muralContent, idx > 0 && { marginTop: 8 }]}>
+                  <Text style={styles.muralT} numberOfLines={1}>{aviso.titulo}</Text>
+                  <Text style={styles.muralS}>{new Date(aviso.data_publicacao).toLocaleDateString('pt-BR')} · {aviso.importancia}</Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.muralContent}>
+                <Text style={styles.muralT}>Nenhum aviso</Text>
+              </View>
+            )}
           </View>
           
           <View style={[styles.widget, { flex: 1 }]}>
@@ -251,9 +330,22 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.widgetTitle}><MaterialCommunityIcons name="chart-arc" size={16} color={COLORS.accentEmerald} /> Desempenho</Text>
             </View>
             <View style={styles.chartMock}>
-              <View style={[styles.bar, { height: '70%', backgroundColor: COLORS.accentViolet }]} />
-              <View style={[styles.bar, { height: '90%', backgroundColor: COLORS.accentEmerald }]} />
-              <View style={[styles.bar, { height: '50%', backgroundColor: COLORS.accentAmber }]} />
+              {dashboardData.desempenho_grafico && dashboardData.desempenho_grafico.length > 0 ? (
+                dashboardData.desempenho_grafico.slice(0, 4).map((item, idx) => (
+                  <View 
+                    key={idx} 
+                    style={[
+                      styles.bar, 
+                      { 
+                        height: `${item.media * 10}%`, 
+                        backgroundColor: idx === 0 ? COLORS.accentViolet : idx === 1 ? COLORS.accentEmerald : idx === 2 ? COLORS.accentAmber : COLORS.accentRuby 
+                      }
+                    ]} 
+                  />
+                ))
+              ) : (
+                <View style={[styles.bar, { height: '10%', backgroundColor: COLORS.borderMid }]} />
+              )}
             </View>
           </View>
         </View>
@@ -261,22 +353,27 @@ export default function HomeScreen({ navigation }) {
         {/* Biblioteca: Livros em Posse */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}><MaterialCommunityIcons name="book-bookmark" size={18} color={COLORS.accentCyan} /> Livros em Minha Posse</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>Ver Acervo</Text></TouchableOpacity>
         </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.booksScroll}>
-          <View style={styles.bookCard}>
-            <View style={styles.bookCover}><MaterialCommunityIcons name="book-variant" size={30} color={COLORS.accentEmerald} /></View>
-            <Text style={styles.bookT} numberOfLines={1}>Dom Casmurro</Text>
-            <Text style={styles.bookA}>M. de Assis</Text>
-            <View style={styles.bookBadge}><Text style={styles.bookBadgeT}>EM POSSE</Text></View>
-          </View>
-          <View style={styles.bookCard}>
-            <View style={[styles.bookCover, { backgroundColor: 'rgba(244,63,94,0.1)' }]}><MaterialCommunityIcons name="book-variant" size={30} color={COLORS.accentRuby} /></View>
-            <Text style={styles.bookT} numberOfLines={1}>Clean Code</Text>
-            <Text style={styles.bookA}>Robert Martin</Text>
-            <View style={[styles.bookBadge, { backgroundColor: 'rgba(244,63,94,0.1)' }]}><Text style={[styles.bookBadgeT, { color: COLORS.accentRuby }]}>ATRASADO</Text></View>
-          </View>
-        </ScrollView>
+        {dashboardData.livros_posse && dashboardData.livros_posse.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.booksScroll}>
+            {dashboardData.livros_posse.map((livro, idx) => (
+              <View key={livro.id || idx} style={styles.bookCard}>
+                <View style={[styles.bookCover, livro.atrasado && { backgroundColor: 'rgba(244,63,94,0.1)' }]}>
+                  <MaterialCommunityIcons name="book-variant" size={30} color={livro.atrasado ? COLORS.accentRuby : COLORS.accentEmerald} />
+                </View>
+                <Text style={styles.bookT} numberOfLines={1}>{livro.titulo}</Text>
+                <Text style={styles.bookA}>{livro.autor}</Text>
+                <View style={[styles.bookBadge, livro.atrasado && { backgroundColor: 'rgba(244,63,94,0.1)' }]}>
+                  <Text style={[styles.bookBadgeT, livro.atrasado && { color: COLORS.accentRuby }]}>
+                    {livro.atrasado ? 'ATRASADO' : 'EM POSSE'}
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
+        ) : (
+          <Text style={[styles.emptyText, { marginBottom: 20 }]}>Nenhum livro em posse atualmente</Text>
+        )}
 
         {/* Grade Horária Completa - Day Selector Style */}
         <Text style={styles.sectionTitle}><MaterialCommunityIcons name="clock-outline" size={18} color={COLORS.accentAmber} /> Grade Horária</Text>
@@ -288,17 +385,21 @@ export default function HomeScreen({ navigation }) {
           ))}
         </View>
         <View style={styles.gradeWidget}>
-          {[ {t: '07:30', s: 'Matemática'}, {t: '08:20', s: 'Física'}, {t: '09:10', s: 'Intervalo'} ].map((g, i) => (
-            <View key={i} style={styles.gradeRow}>
-              <Text style={styles.gradeTime}>{g.t}</Text>
-              <View style={[styles.gradeLine, { backgroundColor: g.s === 'Intervalo' ? COLORS.borderMid : COLORS.accentViolet }]} />
-              <Text style={[styles.gradeSubject, g.s === 'Intervalo' && { color: COLORS.textDim }]}>{g.s}</Text>
-            </View>
-          ))}
+          {dashboardData.grade_hoje && dashboardData.grade_hoje.length > 0 ? (
+            dashboardData.grade_hoje.map((g, idx) => (
+              <View key={g.id || idx} style={styles.gradeRow}>
+                <Text style={styles.gradeTime}>{g.horario}</Text>
+                <View style={[styles.gradeLine, { backgroundColor: g.disciplina === 'Intervalo' ? COLORS.borderMid : COLORS.accentViolet }]} />
+                <Text style={[styles.gradeSubject, g.disciplina === 'Intervalo' && { color: COLORS.textDim }]}>{g.disciplina}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.emptyText}>Sem aulas agendadas para hoje</Text>
+          )}
         </View>
 
         {/* Botão Sair */}
-        <TouchableOpacity style={styles.logoutBtn}>
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <MaterialCommunityIcons name="logout" size={20} color={COLORS.accentRuby} />
           <Text style={styles.logoutText}>Encerrar Sessão Segura</Text>
         </TouchableOpacity>
@@ -400,5 +501,11 @@ const styles = StyleSheet.create({
   gradeSubject: { color: '#fff', fontSize: 15, fontWeight: '600' },
 
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 16, borderRadius: 16, backgroundColor: 'rgba(248,113,113,0.05)', borderWidth: 1, borderColor: 'rgba(248,113,113,0.1)' },
-  logoutText: { color: COLORS.accentRuby, fontSize: 14, fontWeight: '700' }
+  logoutText: { color: COLORS.accentRuby, fontSize: 14, fontWeight: '700' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.bgBase, gap: 15 },
+  loadingText: { color: COLORS.textSecondary, fontSize: 14, fontWeight: '600' },
+  emptyText: { color: COLORS.textDim, fontSize: 12, fontStyle: 'italic', textAlign: 'center', marginVertical: 10 },
+  retryBtn: { marginTop: 15, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: COLORS.accentViolet, borderRadius: 8 },
+  retryText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  errorText: { color: COLORS.accentRuby, fontSize: 14, fontWeight: '600', marginTop: 10 }
 });

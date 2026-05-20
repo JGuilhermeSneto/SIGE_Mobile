@@ -20,6 +20,7 @@ import NotasScreen from './src/screens/NotasScreen';
 import PerfilScreen from './src/screens/PerfilScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import SplashScreen from './src/screens/SplashScreen';
+import AtividadesScreen from './src/screens/AtividadesScreen';
 
 const COLORS = {
   bgBase: '#090e1a',
@@ -113,6 +114,14 @@ function MainDrawer() {
         options={{
           title: 'Notas e Médias',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="chart-box-outline" color={color} size={size} />
+        }}
+      />
+      <Drawer.Screen 
+        name="Atividades" 
+        component={AtividadesScreen} 
+        options={{
+          title: 'Minhas Atividades',
+          drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="clipboard-list-outline" color={color} size={size} />
         }}
       />
       <Drawer.Screen 

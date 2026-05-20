@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView, StatusBar, ActivityIndicator, Linking, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getMateriais } from '../services/api';
 
 const COLORS = {
   fundoPrincipal: "#050811",
@@ -17,14 +18,48 @@ const COLORS = {
   bordaRoxo: "rgba(74,66,149,0.28)",
 };
 
-const disciplinas = [
-  { id: 1, nome: "Matematica", professor: "Prof. Fernanda Costa Vieira", arquivos: [{ nome: "Apostila PDF", meta: "Livro texto", quantidade: 4 }] },
-  { id: 2, nome: "Lingua Portuguesa", professor: "Prof. Davi Alves Guedes", arquivos: [{ nome: "Apostila PDF", meta: "Livro texto", quantidade: 2 }] },
-  { id: 3, nome: "Fisica", professor: "Prof. Eduardo Pereira Pereira", arquivos: [{ nome: "Apostila PDF", meta: "Livro texto", quantidade: 3 }] },
-  { id: 4, nome: "Quimica", professor: "Prof. Mariana Santos Ribeiro", arquivos: [{ nome: "Apostila PDF", meta: "Livro texto", quantidade: 1 }] },
-];
-
 export default function MateriaisScreen({ navigation }) {
+  const [disciplinas, setDisciplinas] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchMateriais = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getMateriais();
+      setDisciplinas(data || []);
+    } catch (err) {
+      console.error(err);
+      setError("Não foi possível carregar os materiais.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMateriais();
+  }, []);
+
+  const handleOpenUrl = (url) => {
+    if (!url) {
+      Alert.alert("Aviso", "URL do material não disponível.");
+      return;
+    }
+    Linking.openURL(url).catch((err) => {
+      console.error("Erro ao abrir URL:", err);
+      Alert.alert("Erro", "Não foi possível abrir o link.");
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.tela, { justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="rgba(5,8,17,0.97)" />
+        <ActivityIndicator size="large" color={COLORS.roxoClaro} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.tela}>
       <StatusBar barStyle="light-content" backgroundColor="rgba(5,8,17,0.97)" />
@@ -57,36 +92,44 @@ export default function MateriaisScreen({ navigation }) {
           </Text>
         </View>
 
-        {disciplinas.map((d) => (
-          <View key={d.id} style={styles.cartaoDisciplina}>
-            <View style={styles.cabecalhoDisciplina}>
-              <Text style={styles.nomeDisciplina}>{d.nome}</Text>
-              <View style={styles.etiquetaProfessor}>
-                <MaterialCommunityIcons name="account" size={11} color={COLORS.roxoClaro} />
-                <Text style={styles.textoProfessor} numberOfLines={1}>{d.professor}</Text>
+        {error || disciplinas.length === 0 ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: COLORS.cinzaClaro, fontSize: 13, textAlign: 'center' }}>
+              {error || "Nenhum material de aula publicado."}
+            </Text>
+          </View>
+        ) : (
+          disciplinas.map((d) => (
+            <View key={d.id} style={styles.cartaoDisciplina}>
+              <View style={styles.cabecalhoDisciplina}>
+                <Text style={styles.nomeDisciplina}>{d.nome}</Text>
+                <View style={styles.etiquetaProfessor}>
+                  <MaterialCommunityIcons name="account" size={11} color={COLORS.roxoClaro} />
+                  <Text style={styles.textoProfessor} numberOfLines={1}>{d.professor}</Text>
+                </View>
+              </View>
+              <View style={styles.corpoDisciplina}>
+                {d.arquivos.map((arquivo, i) => (
+                  <TouchableOpacity key={i} style={styles.itemArquivo} onPress={() => handleOpenUrl(arquivo.url)}>
+                    <View style={styles.iconePdf}>
+                      <MaterialCommunityIcons name={arquivo.tipo === "LINK" ? "link-variant" : "file-pdf-box"} size={20} color={COLORS.verde} />
+                    </View>
+                    <View style={styles.infoArquivo}>
+                      <Text style={styles.nomeArquivo}>{arquivo.nome}</Text>
+                      <Text style={styles.metaArquivo}>{arquivo.meta}</Text>
+                      <Text style={styles.contagemArquivo}>
+                        <MaterialCommunityIcons name="arrow-down" size={10} color={COLORS.verde} /> {arquivo.tipo === "LINK" ? "Acessar Link" : "Baixar arquivo"}
+                      </Text>
+                    </View>
+                    <View style={styles.setaArquivo}>
+                      <MaterialCommunityIcons name="chevron-right" size={14} color={COLORS.roxoClaro} />
+                    </View>
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
-            <View style={styles.corpoDisciplina}>
-              {d.arquivos.map((arquivo, i) => (
-                <TouchableOpacity key={i} style={styles.itemArquivo}>
-                  <View style={styles.iconePdf}>
-                    <MaterialCommunityIcons name="file-pdf-box" size={20} color={COLORS.verde} />
-                  </View>
-                  <View style={styles.infoArquivo}>
-                    <Text style={styles.nomeArquivo}>{arquivo.nome}</Text>
-                    <Text style={styles.metaArquivo}>{arquivo.meta}</Text>
-                    <Text style={styles.contagemArquivo}>
-                      <MaterialCommunityIcons name="arrow-down" size={10} color={COLORS.verde} /> {arquivo.quantidade} {arquivo.quantidade === 1 ? "arquivo" : "arquivos"}
-                    </Text>
-                  </View>
-                  <View style={styles.setaArquivo}>
-                    <MaterialCommunityIcons name="chevron-right" size={14} color={COLORS.roxoClaro} />
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        ))}
+          ))
+        )}
         <View style={{height: 40}}/>
       </ScrollView>
     </SafeAreaView>

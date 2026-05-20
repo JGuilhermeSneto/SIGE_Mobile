@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
+import { getPerfil, putPerfil } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -42,14 +43,15 @@ const COLORS = {
 
 export default function PerfilScreen({ navigation }) {
   // State for student details
-  const [nome, setNome] = useState('Aluno Testador SIGE');
-  const [matricula, setMatricula] = useState('20260160184');
-  const [cpf, setCpf] = useState('999.999.999-99');
+  const [nome, setNome] = useState('');
+  const [matricula, setMatricula] = useState('');
+  const [cpf, setCpf] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [naturalidade, setNaturalidade] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [turma, setTurma] = useState('Turma de Teste Mobile — Manhã');
-  const [anoLetivo, setAnoLetivo] = useState('2026');
+  const [turma, setTurma] = useState('');
+  const [anoLetivo, setAnoLetivo] = useState('');
+  const [statusMatricula, setStatusMatricula] = useState('');
 
   // Academic statistics
   const [mediaGeral, setMediaGeral] = useState('0,0');
@@ -57,27 +59,56 @@ export default function PerfilScreen({ navigation }) {
   const [disciplinas, setDisciplinas] = useState('0');
   const [faltas, setFaltas] = useState('0');
 
-  // Modal Visibility
+  // Responsáveis list
+  const [responsaveis, setResponsaveis] = useState([]);
+
+  // Loading and Modal Visibility
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Temporary state for edits
   const [tempNome, setTempNome] = useState('');
-  const [tempMatricula, setTempMatricula] = useState('');
   const [tempCpf, setTempCpf] = useState('');
   const [tempDataNascimento, setTempDataNascimento] = useState('');
   const [tempNaturalidade, setTempNaturalidade] = useState('');
   const [tempTelefone, setTempTelefone] = useState('');
-  const [tempTurma, setTempTurma] = useState('');
-  const [tempAnoLetivo, setTempAnoLetivo] = useState('');
-  const [tempMediaGeral, setTempMediaGeral] = useState('');
-  const [tempFrequencia, setTempFrequencia] = useState('');
-  const [tempDisciplinas, setTempDisciplinas] = useState('');
-  const [tempFaltas, setTempFaltas] = useState('');
 
   // Custom Toast State
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  const fetchPerfilData = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getPerfil();
+      setNome(data.nome);
+      setMatricula(data.matricula);
+      setCpf(data.cpf);
+      setDataNascimento(data.data_nascimento);
+      setNaturalidade(data.naturalidade);
+      setTelefone(data.telefone);
+      setTurma(data.turma);
+      setAnoLetivo(data.ano_letivo);
+      setStatusMatricula(data.status_matricula);
+      
+      if (data.stats) {
+        setMediaGeral(data.stats.media_geral);
+        setFrequencia(data.stats.frequencia);
+        setDisciplinas(data.stats.disciplinas);
+        setFaltas(data.stats.faltas);
+      }
+      setResponsaveis(data.responsaveis || []);
+    } catch (error) {
+      showToast('Erro ao carregar dados do perfil.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPerfilData();
+  }, []);
 
   // Dynamically calculate initials for avatar
   const getInitials = (fullName) => {
@@ -97,42 +128,58 @@ export default function PerfilScreen({ navigation }) {
 
   const handleOpenEditModal = () => {
     setTempNome(nome);
-    setTempMatricula(matricula);
     setTempCpf(cpf);
     setTempDataNascimento(dataNascimento);
     setTempNaturalidade(naturalidade);
     setTempTelefone(telefone);
-    setTempTurma(turma);
-    setTempAnoLetivo(anoLetivo);
-    setTempMediaGeral(mediaGeral);
-    setTempFrequencia(frequencia);
-    setTempDisciplinas(disciplinas);
-    setTempFaltas(faltas);
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API request
-    setTimeout(() => {
+    try {
+      await putPerfil({
+        nome: tempNome,
+        cpf: tempCpf,
+        data_nascimento: tempDataNascimento,
+        naturalidade: tempNaturalidade,
+        telefone: tempTelefone
+      });
+      
+      // Update local state directly after successful save
       setNome(tempNome);
-      setMatricula(tempMatricula);
       setCpf(tempCpf);
       setDataNascimento(tempDataNascimento);
       setNaturalidade(tempNaturalidade);
       setTelefone(tempTelefone);
-      setTurma(tempTurma);
-      setAnoLetivo(tempAnoLetivo);
-      setMediaGeral(tempMediaGeral);
-      setFrequencia(tempFrequencia);
-      setDisciplinas(tempDisciplinas);
-      setFaltas(tempFaltas);
       
-      setIsSaving(false);
       setIsModalOpen(false);
       showToast('Perfil atualizado com sucesso!');
-    }, 800);
+    } catch (error) {
+      showToast('Erro ao atualizar perfil.');
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const getSituacaoGeral = () => {
+    if (!mediaGeral || !frequencia) return 'Sem dados';
+    const medVal = parseFloat(String(mediaGeral).replace(',', '.'));
+    const freqVal = parseFloat(String(frequencia).replace('%', ''));
+    if (isNaN(medVal) || isNaN(freqVal)) return 'Sem dados';
+    if (medVal >= 7.0 && freqVal >= 75) return 'Aprovado';
+    if (medVal >= 5.0 && freqVal >= 75) return 'Recuperação';
+    return 'Reprovado';
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle="light-content" backgroundColor="#0d0f18" />
+        <ActivityIndicator size="large" color={COLORS.cyan} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -222,7 +269,7 @@ export default function PerfilScreen({ navigation }) {
                 <Text style={styles.metaItemText} numberOfLines={1}>{turma} · {anoLetivo}</Text>
               </View>
               <View style={styles.badgeAtivo}>
-                <Text style={styles.badgeAtivoText}>Ativo</Text>
+                <Text style={styles.badgeAtivoText}>{statusMatricula || 'Ativo'}</Text>
               </View>
             </View>
 
@@ -396,7 +443,7 @@ export default function PerfilScreen({ navigation }) {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoKey}>Status da Matrícula</Text>
-                <Text style={[styles.infoVal, { color: COLORS.green, fontWeight: '700' }]}>Ativo</Text>
+                <Text style={[styles.infoVal, { color: COLORS.green, fontWeight: '700' }]}>{statusMatricula || '—'}</Text>
               </View>
             </View>
 
@@ -407,7 +454,7 @@ export default function PerfilScreen({ navigation }) {
               </View>
               <View style={styles.infoContent}>
                 <Text style={styles.infoKey}>Situação Geral</Text>
-                <Text style={[styles.infoVal, styles.infoValEmpty]}>Sem dados</Text>
+                <Text style={[styles.infoVal, { color: COLORS.green, fontWeight: '700' }]}>{getSituacaoGeral()}</Text>
               </View>
             </View>
           </View>
@@ -419,10 +466,31 @@ export default function PerfilScreen({ navigation }) {
             <MaterialCommunityIcons name="account-group-outline" size={16} color={COLORS.cyan} />
             <Text style={styles.sectionTitleText}>Responsáveis</Text>
           </View>
-          <View style={styles.emptyBox}>
-            <MaterialCommunityIcons name="account-multiple-outline" size={32} color={COLORS.muted} style={{ opacity: 0.35, marginBottom: 8 }} />
-            <Text style={styles.emptyBoxText}>Nenhum responsável cadastrado.</Text>
-          </View>
+          {responsaveis.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <MaterialCommunityIcons name="account-multiple-outline" size={32} color={COLORS.muted} style={{ opacity: 0.35, marginBottom: 8 }} />
+              <Text style={styles.emptyBoxText}>Nenhum responsável cadastrado.</Text>
+            </View>
+          ) : (
+            <View style={styles.infoCard}>
+              {responsaveis.map((resp, idx) => (
+                <View key={idx} style={[styles.infoRow, idx === responsaveis.length - 1 && { borderBottomWidth: 0 }]}>
+                  <View style={styles.infoIcon}>
+                    <MaterialCommunityIcons name="account-outline" size={14} color={COLORS.cyan} />
+                  </View>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoKey}>{resp.parentesco || 'Responsável'}</Text>
+                    <Text style={styles.infoVal}>{resp.nome}</Text>
+                    {resp.telefone && resp.telefone !== '—' && (
+                      <Text style={{ fontSize: 11, color: COLORS.label, marginTop: 2 }}>
+                        Telefone: {resp.telefone}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Footer */}
@@ -456,16 +524,6 @@ export default function PerfilScreen({ navigation }) {
                 onChangeText={setTempNome}
                 placeholder="Nome do Aluno"
                 placeholderTextColor={COLORS.muted}
-              />
-
-              <Text style={styles.inputLabel}>MATRÍCULA</Text>
-              <TextInput
-                style={styles.textInput}
-                value={tempMatricula}
-                onChangeText={setTempMatricula}
-                placeholder="2026..."
-                placeholderTextColor={COLORS.muted}
-                keyboardType="numeric"
               />
 
               <Text style={styles.inputLabel}>CPF</Text>
@@ -504,77 +562,6 @@ export default function PerfilScreen({ navigation }) {
                 placeholderTextColor={COLORS.muted}
                 keyboardType="phone-pad"
               />
-
-              <Text style={styles.modalSectionLabel}>Situação Acadêmica</Text>
-
-              <Text style={styles.inputLabel}>TURMA</Text>
-              <TextInput
-                style={styles.textInput}
-                value={tempTurma}
-                onChangeText={setTempTurma}
-                placeholder="Ex: 3º Ano A - Manhã"
-                placeholderTextColor={COLORS.muted}
-              />
-
-              <Text style={styles.inputLabel}>ANO LETIVO</Text>
-              <TextInput
-                style={styles.textInput}
-                value={tempAnoLetivo}
-                onChangeText={setTempAnoLetivo}
-                placeholder="Ex: 2026"
-                placeholderTextColor={COLORS.muted}
-                keyboardType="numeric"
-              />
-
-              <Text style={styles.modalSectionLabel}>Estatísticas Acadêmicas</Text>
-
-              <View style={styles.flexInputsRow}>
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.inputLabel}>MÉDIA GERAL</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={tempMediaGeral}
-                    onChangeText={setTempMediaGeral}
-                    placeholder="0,0"
-                    placeholderTextColor={COLORS.muted}
-                  />
-                </View>
-                <View style={{ flex: 1, marginLeft: 8 }}>
-                  <Text style={styles.inputLabel}>FREQUÊNCIA</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={tempFrequencia}
-                    onChangeText={setTempFrequencia}
-                    placeholder="100%"
-                    placeholderTextColor={COLORS.muted}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.flexInputsRow}>
-                <View style={{ flex: 1, marginRight: 8 }}>
-                  <Text style={styles.inputLabel}>DISCIPLINAS</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={tempDisciplinas}
-                    onChangeText={setTempDisciplinas}
-                    placeholder="0"
-                    placeholderTextColor={COLORS.muted}
-                    keyboardType="numeric"
-                  />
-                </View>
-                <View style={{ flex: 1, marginLeft: 8 }}>
-                  <Text style={styles.inputLabel}>FALTAS NO ANO</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    value={tempFaltas}
-                    onChangeText={setTempFaltas}
-                    placeholder="0"
-                    placeholderTextColor={COLORS.muted}
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
 
               <View style={{ height: 20 }} />
             </ScrollView>
