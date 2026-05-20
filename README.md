@@ -58,6 +58,7 @@ Siga os comandos abaixo no seu terminal:
 - [x] **Transições Dinâmicas**: Overlays de feedback para login bem-sucedido e logout seguro.
 - [x] **Navegação Simplificada**: Acesso rápido às notas, frequências e materiais.
 - [x] **Meu Perfil Premium (v3.1)**: Tela de Perfil do aluno de alta fidelidade portada a partir do layout Web, contendo gradientes SVG vetoriais nativos, avatar com cálculo dinâmico de iniciais, estatísticas de desempenho e um painel modal de edição de informações em tempo real com feedback toast.
+- [x] **Integração de Segurança SOC**: Compatibilidade com a camada de defesa ativa e controle de blacklist em tempo real do ecossistema SIGE.
 
 ---
 Desenvolvido com foco em UX/UI de alto nível para o ecossistema SIGE.
