@@ -60,6 +60,8 @@ Siga os comandos abaixo no seu terminal:
 - [x] **Meu Perfil Premium (v3.1)**: Tela de Perfil do aluno de alta fidelidade portada a partir do layout Web, contendo gradientes SVG vetoriais nativos, avatar com cálculo dinâmico de iniciais, estatísticas de desempenho e um painel modal de edição de informações em tempo real com feedback toast.
 - [x] **Integração de Segurança SOC & WAF**: Compatibilidade com a camada de defesa ativa e controle de blacklist em tempo real do ecossistema SIGE.
 - [x] **Integração API com Redes Locais (v3.2)**: Validação e documentação de conectividade com a API de desenvolvimento via IP local (`192.168.18.90:8000`), evitando erros comuns de CORS/DisallowedHost no Expo Go.
+- [x] **Preparação para Push Notifications (FCM/APNs)**: Configuração base conectada à nova infraestrutura de registro de Tokens na API Django do backend, pronta para disparos via Celery.
+- [x] **Integração Exclusiva Swagger**: O app está sendo desenvolvido sob o novo contrato da API (documentado em `/api/docs/mobile/`), contando com rotas específicas para otimização de banda.
 
 ---
 Desenvolvido com foco em UX/UI de alto nível para o ecossistema SIGE.
