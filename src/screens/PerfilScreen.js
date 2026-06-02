@@ -21,23 +21,23 @@ import { getPerfil, putPerfil } from '../services/api';
 const { width } = Dimensions.get('window');
 
 const COLORS = {
-  bg: '#0b0d14',
-  surface: '#111520',
-  card: '#161b2a',
-  card2: '#1a2035',
-  border: 'rgba(255, 255, 255, 0.07)',
-  cyan: '#00d4c8',
-  cyanDim: 'rgba(0, 212, 200, 0.15)',
-  blue: '#4f7fff',
-  blueDim: 'rgba(79, 127, 255, 0.15)',
-  green: '#2ecc71',
-  greenDim: 'rgba(46, 204, 113, 0.15)',
-  red: '#ff4d6d',
-  yellow: '#f5a623',
-  yellowDim: 'rgba(245, 166, 35, 0.15)',
-  text: '#e8eaf0',
-  muted: '#6b7280',
-  label: '#9ca3af',
+  bg: '#090e1a',
+  surface: '#0f1729',
+  card: '#131e33',
+  card2: '#1a2844',
+  border: 'rgba(255, 255, 255, 0.06)',
+  cyan: '#22d3ee',
+  cyanDim: 'rgba(34, 211, 238, 0.15)',
+  blue: '#7c6fff',
+  blueDim: 'rgba(124, 111, 255, 0.15)',
+  green: '#34d399',
+  greenDim: 'rgba(52, 211, 153, 0.15)',
+  red: '#f87171',
+  yellow: '#fbbf24',
+  yellowDim: 'rgba(251, 191, 36, 0.15)',
+  text: '#ffffff',
+  muted: '#cbd5e1',
+  label: '#94a3b8',
   white: '#ffffff',
 };
 
@@ -175,7 +175,7 @@ export default function PerfilScreen({ navigation }) {
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <StatusBar barStyle="light-content" backgroundColor="#0d0f18" />
+        <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
         <ActivityIndicator size="large" color={COLORS.cyan} />
       </SafeAreaView>
     );
@@ -183,7 +183,7 @@ export default function PerfilScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0d0f18" />
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
 
       {/* Top Header Bar */}
       <View style={styles.nav}>
@@ -608,7 +608,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    backgroundColor: '#0d0f18',
+    backgroundColor: COLORS.bg,
   },
   navButton: {
     width: 36,

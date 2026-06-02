@@ -10,6 +10,7 @@ import {
   DrawerItem 
 } from '@react-navigation/drawer';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 // Importando as telas
 import HomeScreen from './src/screens/HomeScreen';
@@ -35,6 +36,15 @@ const COLORS = {
 
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
+
+// HOC para adicionar transições animadas com Reanimated
+const withAnimation = (Component) => {
+  return (props) => (
+    <Animated.View style={{ flex: 1 }} entering={FadeInDown.duration(400).springify()}>
+      <Component {...props} />
+    </Animated.View>
+  );
+};
 
 function CustomDrawerContent(props) {
   return (
@@ -71,6 +81,8 @@ function MainDrawer() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: false,
+        unmountOnBlur: true, // Garante que a animação rode sempre que a tela for acessada
+        sceneStyle: { backgroundColor: COLORS.bgBase },
         drawerStyle: {
           backgroundColor: COLORS.bgSurface,
           width: 280,
@@ -86,7 +98,7 @@ function MainDrawer() {
     >
       <Drawer.Screen 
         name="Home" 
-        component={HomeScreen} 
+        component={withAnimation(HomeScreen)} 
         options={{
           title: 'Painel Inicial',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="view-dashboard-outline" color={color} size={size} />
@@ -94,7 +106,7 @@ function MainDrawer() {
       />
       <Drawer.Screen 
         name="Roteiro" 
-        component={RoteiroScreen} 
+        component={withAnimation(RoteiroScreen)} 
         options={{
           title: 'Trilha Educacional',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="map-marker-path" color={color} size={size} />
@@ -102,7 +114,7 @@ function MainDrawer() {
       />
       <Drawer.Screen 
         name="Frequencia" 
-        component={FrequenciaScreen} 
+        component={withAnimation(FrequenciaScreen)} 
         options={{
           title: 'Frequência',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="calendar-check-outline" color={color} size={size} />
@@ -110,7 +122,7 @@ function MainDrawer() {
       />
       <Drawer.Screen 
         name="Notas" 
-        component={NotasScreen} 
+        component={withAnimation(NotasScreen)} 
         options={{
           title: 'Notas e Médias',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="chart-box-outline" color={color} size={size} />
@@ -118,7 +130,7 @@ function MainDrawer() {
       />
       <Drawer.Screen 
         name="Atividades" 
-        component={AtividadesScreen} 
+        component={withAnimation(AtividadesScreen)} 
         options={{
           title: 'Minhas Atividades',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="clipboard-list-outline" color={color} size={size} />
@@ -126,7 +138,7 @@ function MainDrawer() {
       />
       <Drawer.Screen 
         name="Materiais" 
-        component={MateriaisScreen} 
+        component={withAnimation(MateriaisScreen)} 
         options={{
           title: 'Materiais de Aula',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="folder-open-outline" color={color} size={size} />
@@ -134,7 +146,7 @@ function MainDrawer() {
       />
       <Drawer.Screen 
         name="Perfil" 
-        component={PerfilScreen} 
+        component={withAnimation(PerfilScreen)} 
         options={{
           title: 'Meu Perfil',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="account-outline" color={color} size={size} />
