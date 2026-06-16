@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
   StatusBar,
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +18,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
-import { login } from '../services/api';
+import { login, registerDeviceToken } from '../services/api';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 
 const { width, height } = Dimensions.get('window');
 
@@ -52,21 +54,38 @@ const Particle = ({ color, size, delay, duration, startX }) => {
   });
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
-        styles.particle, 
-        { 
-          width: size, 
-          height: size, 
-          backgroundColor: color, 
+        styles.particle,
+        {
+          width: size,
+          height: size,
+          backgroundColor: color,
           opacity: opacity,
           left: startX,
           transform: [{ translateY }],
         }
-      ]} 
+      ]}
     />
   );
 };
+
+async function getPushToken() {
+  try {
+    if (!Device.isDevice) return null;
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') return null;
+    const tokenObj = await Notifications.getExpoPushTokenAsync();
+    return tokenObj.data;
+  } catch (e) {
+    return null;
+  }
+}
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -82,7 +101,7 @@ export default function LoginScreen({ navigation }) {
   const logoPulse = useRef(new Animated.Value(1)).current;
   const topBarAnim = useRef(new Animated.Value(0)).current;
   const ringFillAnim = useRef(new Animated.Value(0)).current;
-  
+
   const feedbackFade = useRef(new Animated.Value(0)).current;
   const feedbackScale = useRef(new Animated.Value(0.8)).current;
 
@@ -113,7 +132,7 @@ export default function LoginScreen({ navigation }) {
         ])
       )
     ]);
-    
+
     animations.start();
     return () => animations.stop();
   }, []);
@@ -126,8 +145,10 @@ export default function LoginScreen({ navigation }) {
     setLoading(true);
     setErrorMessage('');
     try {
-      await login(email, password);
-      
+      const trimmedEmail = email.trim();
+      const trimmedPassword = password.trim();
+      await login(trimmedEmail, trimmedPassword);
+
       // Feedback visual de sucesso
       setShowFeedback(true);
       Animated.parallel([
@@ -135,13 +156,22 @@ export default function LoginScreen({ navigation }) {
         Animated.spring(feedbackScale, { toValue: 1, friction: 6, tension: 40, useNativeDriver: true })
       ]).start();
 
+      // Tenta obter token de push e registrar em background
+      getPushToken().then(async (token) => {
+        if (token) {
+          try {
+            await registerDeviceToken(token, Platform.OS === 'ios' ? 'ios' : 'android');
+          } catch (e) {
+            // não bloqueia o fluxo de login
+            console.warn('Registro de token falhou', e);
+          }
+        }
+      });
+
       setTimeout(() => {
         setLoading(false);
         setShowFeedback(false);
-        navigation.replace('Splash', { 
-          nextScreen: 'Main',
-          message: 'Carregando painel...'
-        });
+        navigation.replace('Main');
       }, 1500);
     } catch (err) {
       setLoading(false);
@@ -162,18 +192,18 @@ export default function LoginScreen({ navigation }) {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#060912" />
-      
+
       <Particle color="#7c6fff" size={4} delay={0} duration={18000} startX={width * 0.1} />
       <Particle color="#22d3ee" size={3} delay={4000} duration={22000} startX={width * 0.85} />
       <Particle color="#34d399" size={5} delay={2000} duration={15000} startX={width * 0.5} />
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flex}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
           <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-            
+
             <Animated.View style={[styles.topLine, { opacity: topBarAnim }]}>
               <View style={styles.topLineGradient} />
             </Animated.View>
@@ -189,8 +219,8 @@ export default function LoginScreen({ navigation }) {
                       </LinearGradient>
                     </Defs>
                     <Circle cx="50" cy="50" r="46" stroke="rgba(124, 111, 255, 0.05)" strokeWidth="3" fill="none" />
-                    <AnimatedCircle 
-                      cx="50" cy="50" r="46" stroke="url(#grad)" strokeWidth="3.5" fill="none" 
+                    <AnimatedCircle
+                      cx="50" cy="50" r="46" stroke="url(#grad)" strokeWidth="3.5" fill="none"
                       strokeDasharray={CIRCUMFERENCE} strokeDashoffset={strokeDashoffset} strokeLinecap="round"
                     />
                   </Svg>
@@ -213,16 +243,16 @@ export default function LoginScreen({ navigation }) {
 
             <View style={styles.form}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>E-MAIL CORPORATIVO</Text>
+                <Text style={styles.inputLabel}>MATRÍCULA OU E-MAIL</Text>
                 <View style={[styles.inputBox, focusedField === 'email' && styles.inputFocused]}>
-                  <MaterialCommunityIcons 
-                    name={(email.length > 0 || focusedField === 'email') ? "email-open-outline" : "email-outline"} 
-                    size={20} color={(email.length > 0 || focusedField === 'email') ? "#7c6fff" : "#475569"} 
-                    style={styles.inputIcon} 
+                  <MaterialCommunityIcons
+                    name={(email.length > 0 || focusedField === 'email') ? "account-key-outline" : "account-outline"}
+                    size={20} color={(email.length > 0 || focusedField === 'email') ? "#7c6fff" : "#475569"}
+                    style={styles.inputIcon}
                   />
-                  <TextInput 
+                  <TextInput
                     style={styles.textInput}
-                    placeholder="E-mail"
+                    placeholder="Matrícula ou E-mail"
                     placeholderTextColor="#475569"
                     onFocus={() => setFocusedField('email')}
                     onBlur={() => setFocusedField(null)}
@@ -236,12 +266,12 @@ export default function LoginScreen({ navigation }) {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>CHAVE DE ACESSO</Text>
                 <View style={[styles.inputBox, focusedField === 'pass' && styles.inputFocused]}>
-                  <MaterialCommunityIcons 
-                    name={(password.length > 0 || focusedField === 'pass') ? "lock-open-variant-outline" : "lock-outline"} 
-                    size={20} color={(password.length > 0 || focusedField === 'pass') ? "#22d3ee" : "#475569"} 
-                    style={styles.inputIcon} 
+                  <MaterialCommunityIcons
+                    name={(password.length > 0 || focusedField === 'pass') ? "lock-open-variant-outline" : "lock-outline"}
+                    size={20} color={(password.length > 0 || focusedField === 'pass') ? "#22d3ee" : "#475569"}
+                    style={styles.inputIcon}
                   />
-                  <TextInput 
+                  <TextInput
                     style={styles.textInput}
                     placeholder="Senha"
                     placeholderTextColor="#475569"
@@ -324,11 +354,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 15,
   },
-  
+
   // Feedback Overlay Styles
   feedbackOverlay: {
     position: 'absolute',
-    inset: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'rgba(6, 9, 18, 0.9)',
     alignItems: 'center',
     justifyContent: 'center',

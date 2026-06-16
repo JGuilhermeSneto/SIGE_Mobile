@@ -3,14 +3,15 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { 
-  createDrawerNavigator, 
-  DrawerContentScrollView, 
+import {
+  createDrawerNavigator,
+  DrawerContentScrollView,
   DrawerItemList,
-  DrawerItem 
+  DrawerItem
 } from '@react-navigation/drawer';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { logout } from './src/services/api';
 
 // Importando as telas
 import HomeScreen from './src/screens/HomeScreen';
@@ -64,12 +65,12 @@ function CustomDrawerContent(props) {
       <DrawerItemList {...props} />
 
       <View style={styles.drawerDivider} />
-      
+
       <DrawerItem
         label="Sair da Conta"
         labelStyle={{ color: '#f87171', fontWeight: '700' }}
         icon={({ color, size }) => <MaterialCommunityIcons name="logout" color="#f87171" size={size} />}
-        onPress={() => props.navigation.replace('Login')}
+        onPress={() => { logout(); props.navigation.replace('Login'); }}
       />
     </DrawerContentScrollView>
   );
@@ -77,7 +78,7 @@ function CustomDrawerContent(props) {
 
 function MainDrawer() {
   return (
-    <Drawer.Navigator 
+    <Drawer.Navigator
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: false,
@@ -96,57 +97,57 @@ function MainDrawer() {
         }
       }}
     >
-      <Drawer.Screen 
-        name="Home" 
-        component={withAnimation(HomeScreen)} 
+      <Drawer.Screen
+        name="Home"
+        component={withAnimation(HomeScreen)}
         options={{
           title: 'Painel Inicial',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="view-dashboard-outline" color={color} size={size} />
         }}
       />
-      <Drawer.Screen 
-        name="Roteiro" 
-        component={withAnimation(RoteiroScreen)} 
+      <Drawer.Screen
+        name="Roteiro"
+        component={withAnimation(RoteiroScreen)}
         options={{
           title: 'Trilha Educacional',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="map-marker-path" color={color} size={size} />
         }}
       />
-      <Drawer.Screen 
-        name="Frequencia" 
-        component={withAnimation(FrequenciaScreen)} 
+      <Drawer.Screen
+        name="Frequencia"
+        component={withAnimation(FrequenciaScreen)}
         options={{
           title: 'Frequência',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="calendar-check-outline" color={color} size={size} />
         }}
       />
-      <Drawer.Screen 
-        name="Notas" 
-        component={withAnimation(NotasScreen)} 
+      <Drawer.Screen
+        name="Notas"
+        component={withAnimation(NotasScreen)}
         options={{
           title: 'Notas e Médias',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="chart-box-outline" color={color} size={size} />
         }}
       />
-      <Drawer.Screen 
-        name="Atividades" 
-        component={withAnimation(AtividadesScreen)} 
+      <Drawer.Screen
+        name="Atividades"
+        component={withAnimation(AtividadesScreen)}
         options={{
           title: 'Minhas Atividades',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="clipboard-list-outline" color={color} size={size} />
         }}
       />
-      <Drawer.Screen 
-        name="Materiais" 
-        component={withAnimation(MateriaisScreen)} 
+      <Drawer.Screen
+        name="Materiais"
+        component={withAnimation(MateriaisScreen)}
         options={{
           title: 'Materiais de Aula',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="folder-open-outline" color={color} size={size} />
         }}
       />
-      <Drawer.Screen 
-        name="Perfil" 
-        component={withAnimation(PerfilScreen)} 
+      <Drawer.Screen
+        name="Perfil"
+        component={withAnimation(PerfilScreen)}
         options={{
           title: 'Meu Perfil',
           drawerIcon: ({ color, size }) => <MaterialCommunityIcons name="account-outline" color={color} size={size} />

@@ -1,0 +1,226 @@
+openapi: 3.0.3
+info:
+  title: SIGE Mobile API (subset)
+  version: 1.0.0
+  description: Especificação OpenAPI mínima focada nos endpoints usados pelo aplicativo SIGE_Mobile.
+servers:
+  - url: http://{host}
+    variables:
+      host:
+        default: 192.168.18.90:8000
+        description: IP do servidor Django em desenvolvimento
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        matricula:
+          type: string
+        password:
+          type: string
+      required:
+        - password
+    TokenResponse:
+      type: object
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserSummary"
+    UserSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        nome_completo:
+          type: string
+        perfil:
+          type: string
+    DashboardResponse:
+      type: object
+      properties:
+        aluno:
+          type: object
+        summary:
+          type: object
+        mural:
+          type: array
+          items:
+            type: object
+    BoletimResponse:
+      type: object
+      properties:
+        media_geral:
+          type: number
+        frequencia_total:
+          type: number
+        boletim:
+          type: array
+          items:
+            type: object
+    DeviceToken:
+      type: object
+      properties:
+        token:
+          type: string
+        platform:
+          type: string
+      required:
+        - token
+        - platform
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/auth/login/:
+    post:
+      summary: Obter tokens JWT (login)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Tokens e dados do usuário
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "400":
+          description: Parâmetros inválidos
+  /api/token/refresh/:
+    post:
+      summary: Refresh token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh:
+                  type: string
+              required:
+                - refresh
+      responses:
+        "200":
+          description: Novo access token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access:
+                    type: string
+  /api/v1/aluno/dashboard/:
+    get:
+      summary: Dashboard do aluno
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados do dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardResponse"
+  /api/v1/aluno/boletim/:
+    get:
+      summary: Boletim do aluno
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Boletim detalhado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoletimResponse"
+  /api/v1/aluno/perfil/:
+    get:
+      summary: Perfil do aluno
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Perfil
+    put:
+      summary: Atualizar perfil do aluno
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Perfil atualizado
+  /api/v1/aluno/materiais/:
+    get:
+      summary: Materiais didáticos
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de materiais
+  /api/ping/:
+    get:
+      summary: Verifica disponibilidade do serviço
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  service:
+                    type: string
+  /api/mobile/notifications/register-token/:
+    post:
+      summary: Registrar token de dispositivo para push
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceToken"
+      responses:
+        "200":
+          description: Token registrado/atualizado
+  /api/mobile/notifications/unregister-token/:
+    post:
+      summary: Desregistrar token de dispositivo
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+              required:
+                - token
+      responses:
+        "204":
+          description: Token desativado

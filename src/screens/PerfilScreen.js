@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
-import { getPerfil, putPerfil } from '../services/api';
+import { getPerfil, putPerfil, registerDeviceToken, unregisterDeviceToken } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -67,6 +67,10 @@ export default function PerfilScreen({ navigation }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Push token manual registration (example)
+  const [pushToken, setPushToken] = useState('');
+  const [pushLoading, setPushLoading] = useState(false);
+
   // Temporary state for edits
   const [tempNome, setTempNome] = useState('');
   const [tempCpf, setTempCpf] = useState('');
@@ -91,7 +95,7 @@ export default function PerfilScreen({ navigation }) {
       setTurma(data.turma);
       setAnoLetivo(data.ano_letivo);
       setStatusMatricula(data.status_matricula);
-      
+
       if (data.stats) {
         setMediaGeral(data.stats.media_geral);
         setFrequencia(data.stats.frequencia);
@@ -145,14 +149,14 @@ export default function PerfilScreen({ navigation }) {
         naturalidade: tempNaturalidade,
         telefone: tempTelefone
       });
-      
+
       // Update local state directly after successful save
       setNome(tempNome);
       setCpf(tempCpf);
       setDataNascimento(tempDataNascimento);
       setNaturalidade(tempNaturalidade);
       setTelefone(tempTelefone);
-      
+
       setIsModalOpen(false);
       showToast('Perfil atualizado com sucesso!');
     } catch (error) {
@@ -258,7 +262,7 @@ export default function PerfilScreen({ navigation }) {
 
             {/* Profile Info */}
             <Text style={styles.profileName}>{nome}</Text>
-            
+
             <View style={styles.profileMeta}>
               <View style={styles.metaItem}>
                 <MaterialCommunityIcons name="card-account-details-outline" size={12} color={COLORS.label} />
@@ -279,7 +283,7 @@ export default function PerfilScreen({ navigation }) {
                 <MaterialCommunityIcons name="account-edit-outline" size={14} color={COLORS.text} />
                 <Text style={styles.btnOutlineText}>Editar Perfil</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity style={styles.btnPrimaryContainer} onPress={() => navigation.navigate('Home')}>
                 <View style={StyleSheet.absoluteFill}>
                   <Svg height="100%" width="100%">
@@ -493,6 +497,65 @@ export default function PerfilScreen({ navigation }) {
           )}
         </View>
 
+        {/* Push Token Manual Register (dev/testing) */}
+        <View style={[styles.section, { marginTop: 16 }]}>
+          <View style={styles.sectionTitle}>
+            <MaterialCommunityIcons name="bell-outline" size={16} color={COLORS.cyan} />
+            <Text style={styles.sectionTitleText}>Notificações (Teste)</Text>
+          </View>
+          <View style={styles.infoCard}>
+            <Text style={styles.inputLabel}>Token de Push (cole aqui)</Text>
+            <TextInput
+              style={[styles.textInput, { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 10 }]}
+              value={pushToken}
+              onChangeText={setPushToken}
+              placeholder="Exponent push token ou device token"
+              placeholderTextColor={COLORS.muted}
+              autoCapitalize="none"
+            />
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              <TouchableOpacity
+                style={[styles.btn, { backgroundColor: COLORS.blue, flex: 1 }]}
+                onPress={async () => {
+                  if (!pushToken) return showToast('Cole um token antes de registrar.');
+                  try {
+                    setPushLoading(true);
+                    await registerDeviceToken(pushToken, Platform.OS === 'ios' ? 'ios' : 'android');
+                    showToast('Token registrado com sucesso.');
+                  } catch (e) {
+                    showToast('Falha ao registrar token.');
+                  } finally {
+                    setPushLoading(false);
+                  }
+                }}
+                disabled={pushLoading}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>{pushLoading ? 'Registrando...' : 'Registrar'}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.btn, { backgroundColor: COLORS.red, flex: 1 }]}
+                onPress={async () => {
+                  if (!pushToken) return showToast('Cole um token antes de desregistrar.');
+                  try {
+                    setPushLoading(true);
+                    await unregisterDeviceToken(pushToken);
+                    showToast('Token desativado com sucesso.');
+                  } catch (e) {
+                    showToast('Falha ao desativar token.');
+                  } finally {
+                    setPushLoading(false);
+                  }
+                }}
+                disabled={pushLoading}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700' }}>{pushLoading ? 'Processando...' : 'Desativar'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
         {/* Footer */}
         <Text style={styles.footer}>SIGE · Sistema Integrado de Gestão Escolar</Text>
         <View style={{ height: 40 }} />
@@ -516,7 +579,7 @@ export default function PerfilScreen({ navigation }) {
             {/* Modal Body */}
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
               <Text style={styles.modalSectionLabel}>Identificação</Text>
-              
+
               <Text style={styles.inputLabel}>NOME COMPLETO</Text>
               <TextInput
                 style={styles.textInput}

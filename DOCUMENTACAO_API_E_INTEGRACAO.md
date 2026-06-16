@@ -289,6 +289,43 @@ Para rodar o ecossistema localmente e visualizar no seu celular usando o **Expo 
 4. Aguarde o download do bundle Javascript (você verá o progresso em `%` no terminal e no celular). O aplicativo carregará instantaneamente na tela de Splash!
 
 ---
+## 🔔 Push Notifications (registro de token)
+
+O app mobile inclui uma funcionalidade de teste para **registrar manualmente** um token de dispositivo nas configurações do perfil. Isso é útil para validar o envio de notificações sem adicionar dependências extras.
+
+- Endpoint de registro no backend: `POST /api/mobile/notifications/register-token/` (autenticado)
+- Endpoint de desativação: `POST /api/mobile/notifications/unregister-token/` (autenticado)
+
+No app, abra o menu `Perfil` e cole o token de push (Expo push token ou device token) no campo *Notificações (Teste)* e clique em *Registrar*.
+
+Se preferir automatizar a obtenção do token, instale as bibliotecas do Expo:
+
+```bash
+expo install expo-notifications expo-device
+```
+
+E utilize o snippet abaixo para obter o token e armazená-lo localmente antes de chamar o endpoint de registro:
+
+```javascript
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+
+async function getPushToken() {
+  if (!Device.isDevice) return null;
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') return null;
+  const token = (await Notifications.getExpoPushTokenAsync()).data;
+  return token;
+}
+```
+
+Cole o token no app (Perfil → Notificações) ou integre automaticamente usando o snippet acima e então chame `registerDeviceToken(token, platform)` no `src/services/api.js`.
+
 > 💡 **Dica de Solução de Problemas (Firewall)**: 
 > Se o Expo Go der erro de conexão ("Metro bundler not found" ou "Network error"), o firewall do Windows pode estar bloqueando a porta `8000` (Django) ou `8081`/`19000` (Expo). 
 > Temporariamente, você pode desativar o Firewall do Windows para a rede Privada ou criar uma regra de entrada liberando estas portas para testar.
