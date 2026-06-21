@@ -13,10 +13,13 @@ import {
   Platform,
   Dimensions,
   ActivityIndicator,
+  Image,
+  Alert,
 } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { getPerfil, putPerfil, registerDeviceToken, unregisterDeviceToken } from '../services/api';
+import * as ImagePicker from 'expo-image-picker';
 
 const { width } = Dimensions.get('window');
 
@@ -52,6 +55,7 @@ export default function PerfilScreen({ navigation }) {
   const [turma, setTurma] = useState('');
   const [anoLetivo, setAnoLetivo] = useState('');
   const [statusMatricula, setStatusMatricula] = useState('');
+  const [fotoUrl, setFotoUrl] = useState(null);
 
   // Academic statistics
   const [mediaGeral, setMediaGeral] = useState('0,0');
@@ -95,6 +99,7 @@ export default function PerfilScreen({ navigation }) {
       setTurma(data.turma);
       setAnoLetivo(data.ano_letivo);
       setStatusMatricula(data.status_matricula);
+      setFotoUrl(data.foto_url);
 
       if (data.stats) {
         setMediaGeral(data.stats.media_geral);
@@ -113,6 +118,110 @@ export default function PerfilScreen({ navigation }) {
   useEffect(() => {
     fetchPerfilData();
   }, []);
+
+  const handleAvatarPress = () => {
+    Alert.alert(
+      'Alterar Foto de Perfil',
+      'Como deseja atualizar sua foto de perfil?',
+      [
+        { text: 'Tirar Foto', onPress: handleTakePhoto },
+        { text: 'Escolher da Galeria', onPress: handleChoosePhoto },
+        fotoUrl && !fotoUrl.includes('ui-avatars.com')
+          ? { text: 'Remover Foto Atual', onPress: handleRemovePhoto, style: 'destructive' }
+          : null,
+        { text: 'Cancelar', style: 'cancel' }
+      ].filter(Boolean)
+    );
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        showToast('Permissão de câmera necessária.');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        uploadPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      showToast('Erro ao tirar foto.');
+    }
+  };
+
+  const handleChoosePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showToast('Permissão de galeria necessária.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        uploadPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      showToast('Erro ao selecionar foto.');
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    try {
+      setIsSaving(true);
+      const res = await putPerfil({ remover_foto: true });
+      if (res && res.foto_url) {
+        setFotoUrl(res.foto_url);
+      } else {
+        fetchPerfilData();
+      }
+      showToast('Foto removida com sucesso!');
+    } catch (error) {
+      showToast('Erro ao remover foto.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const uploadPhoto = async (uri) => {
+    try {
+      setIsSaving(true);
+      const formData = new FormData();
+      const uriParts = uri.split('.');
+      const fileType = uriParts[uriParts.length - 1];
+
+      formData.append('foto', {
+        uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+        name: `profile.${fileType}`,
+        type: `image/${fileType === 'png' ? 'png' : 'jpeg'}`,
+      });
+
+      const res = await putPerfil(formData);
+      if (res && res.foto_url) {
+        setFotoUrl(res.foto_url);
+      } else {
+        fetchPerfilData();
+      }
+      showToast('Foto de perfil atualizada!');
+    } catch (error) {
+      console.error(error);
+      showToast('Erro ao enviar foto.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Dynamically calculate initials for avatar
   const getInitials = (fullName) => {
@@ -243,22 +352,30 @@ export default function PerfilScreen({ navigation }) {
 
           <View style={styles.profileBody}>
             {/* Avatar Wrap */}
-            <View style={styles.avatarWrap}>
-              {/* Avatar Background Gradient */}
-              <View style={styles.avatarBackground}>
-                <Svg height="100%" width="100%">
-                  <Defs>
-                    <LinearGradient id="avatarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <Stop offset="0%" stopColor="#00d4c8" />
-                      <Stop offset="100%" stopColor="#4f7fff" />
-                    </LinearGradient>
-                  </Defs>
-                  <Rect width="100%" height="100%" fill="url(#avatarGrad)" />
-                </Svg>
+            <TouchableOpacity style={styles.avatarWrap} onPress={handleAvatarPress} activeOpacity={0.8}>
+              {fotoUrl ? (
+                <Image source={{ uri: fotoUrl }} style={styles.avatarImage} />
+              ) : (
+                <>
+                  {/* Avatar Background Gradient */}
+                  <View style={styles.avatarBackground}>
+                    <Svg height="100%" width="100%">
+                      <Defs>
+                        <LinearGradient id="avatarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <Stop offset="0%" stopColor="#00d4c8" />
+                          <Stop offset="100%" stopColor="#4f7fff" />
+                        </LinearGradient>
+                      </Defs>
+                      <Rect width="100%" height="100%" fill="url(#avatarGrad)" />
+                    </Svg>
+                  </View>
+                  <Text style={styles.avatarText}>{getInitials(nome)}</Text>
+                </>
+              )}
+              <View style={styles.cameraIconBadge}>
+                <MaterialCommunityIcons name="camera" size={10} color={COLORS.white} />
               </View>
-              <Text style={styles.avatarText}>{getInitials(nome)}</Text>
-              <View style={styles.avatarDot} />
-            </View>
+            </TouchableOpacity>
 
             {/* Profile Info */}
             <Text style={styles.profileName}>{nome}</Text>
@@ -729,9 +846,9 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   avatarWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     borderWidth: 3,
     borderColor: COLORS.bg,
     position: 'relative',
@@ -748,16 +865,23 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.white,
   },
-  avatarDot: {
-    width: 12,
-    height: 12,
-    backgroundColor: COLORS.green,
-    borderRadius: 6,
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 34,
+  },
+  cameraIconBadge: {
+    width: 20,
+    height: 20,
+    backgroundColor: COLORS.blue,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: COLORS.bg,
     position: 'absolute',
-    bottom: 2,
-    right: 2,
+    bottom: -1,
+    right: -1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   profileName: {
     fontSize: 17,

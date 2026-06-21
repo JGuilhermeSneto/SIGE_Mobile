@@ -189,17 +189,23 @@ Authorization: Bearer <seu_token_access>
 ### 👤 Perfil do Aluno
 * **Endpoint**: `/api/v1/aluno/perfil/`
 * **Método**: `GET`, `PUT`
-* **Descrição**: Visualiza ou atualiza as informações do perfil do estudante.
+* **Descrição**: Visualiza ou atualiza as informações do perfil do estudante. O método `PUT` aceita tanto JSON quanto requisições `multipart/form-data` para upload de fotos.
 * **Corpo do `PUT`** (Campos editáveis):
-  ```json
-  {
-    "nome": "Carlos Silva Rocha de Souza",
-    "cpf": "221.222.222-22",
-    "data_nascimento": "15/04/2010",
-    "naturalidade": "São Paulo - SP",
-    "telefone": "(11) 98888-7777"
-  }
-  ```
+  - Em formato **JSON** (para dados textuais):
+    ```json
+    {
+      "nome": "Carlos Silva Rocha de Souza",
+      "cpf": "221.222.222-22",
+      "data_nascimento": "15/04/2010",
+      "naturalidade": "São Paulo - SP",
+      "telefone": "(11) 98888-7777",
+      "remover_foto": false
+    }
+    ```
+  - Em formato **multipart/form-data** (para upload de foto):
+    - Campo `foto`: Arquivo binário de imagem (JPEG/PNG).
+    - Campo `nome`, `cpf`, etc. (opcionais).
+    - Campo `remover_foto`: `true` se deseja apagar a foto existente e restaurar as iniciais automáticas.
 * **Resposta de Sucesso (`200 OK` para `GET`)**:
   ```json
   {
@@ -211,6 +217,7 @@ Authorization: Bearer <seu_token_access>
     "telefone": "(11) 98888-7777",
     "turma": "1º Ano A",
     "ano_letivo": "2026",
+    "foto_url": "http://192.168.18.90:8000/media/fotos/pessoas/profile.jpg",
     "stats": {
       "media_geral": "8.7",
       "frequencia": "97.5%",

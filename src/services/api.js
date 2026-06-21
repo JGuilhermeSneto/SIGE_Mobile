@@ -87,10 +87,12 @@ export const getAtividades = async () => {
 };
 
 // --- Helper functions ---
-const defaultHeaders = (hasBody = false) => {
-  const headers = { 'Content-Type': 'application/json' };
+const defaultHeaders = (hasBody = false, isFormData = false) => {
+  const headers = {};
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (AUTH_TOKEN) headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
-  if (!hasBody) return headers;
   return headers;
 };
 
@@ -116,10 +118,11 @@ async function requestWithAuth(path, opts = {}) {
   const url = `${API_BASE_URL}${path}`;
   const method = opts.method || 'GET';
   const body = opts.body || null;
+  const isFormData = body instanceof FormData;
 
   const res = await fetch(url, {
     method,
-    headers: defaultHeaders(!!body),
+    headers: defaultHeaders(!!body, isFormData),
     body,
   });
 

@@ -14,6 +14,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getBoletim } from '../services/api';
 import { ActivityIndicator } from 'react-native';
+import Svg, { Rect, Text as SvgText, Line, Defs, LinearGradient, Stop } from 'react-native-svg';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -86,6 +87,124 @@ const getNotaColor = (notaStr) => {
   if (nota >= 5) return COLORS.accentAmber;
   return COLORS.accentRuby;
 };
+
+function DesempenhoChart({ data }) {
+  if (!data || data.length === 0) return null;
+
+  const chartHeight = 160;
+  const paddingLeft = 30;
+  const paddingRight = 15;
+  const paddingTop = 20;
+  const paddingBottom = 30;
+  
+  const barWidth = 18;
+  const barSpacing = 28;
+  const totalWidth = paddingLeft + paddingRight + data.length * (barWidth + barSpacing);
+  const contentHeight = chartHeight - paddingTop - paddingBottom;
+  
+  const yLines = [10, 7, 5];
+
+  const getBarColor = (media) => {
+    if (media >= 7.0) return 'url(#gradEmerald)';
+    if (media >= 5.0) return 'url(#gradAmber)';
+    return 'url(#gradRuby)';
+  };
+
+  return (
+    <View style={styles.chartWrapper}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
+        <Svg width={totalWidth} height={chartHeight}>
+          <Defs>
+            <LinearGradient id="gradEmerald" x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor="#34d399" stopOpacity={0.9} />
+              <Stop offset="100%" stopColor="#10b981" stopOpacity={0.4} />
+            </LinearGradient>
+            <LinearGradient id="gradAmber" x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor="#fbbf24" stopOpacity={0.9} />
+              <Stop offset="100%" stopColor="#f59e0b" stopOpacity={0.4} />
+            </LinearGradient>
+            <LinearGradient id="gradRuby" x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor="#f87171" stopOpacity={0.9} />
+              <Stop offset="100%" stopColor="#ef4444" stopOpacity={0.4} />
+            </LinearGradient>
+          </Defs>
+
+          {/* Reference Line Y = 7.0 (Pass) */}
+          {yLines.map((val) => {
+            const y = paddingTop + contentHeight - (val / 10) * contentHeight;
+            const isPassLine = val === 7;
+            return (
+              <React.Fragment key={val}>
+                <Line 
+                  x1={paddingLeft} 
+                  y1={y} 
+                  x2={totalWidth - paddingRight} 
+                  y2={y} 
+                  stroke={isPassLine ? 'rgba(34, 211, 238, 0.4)' : 'rgba(255,255,255,0.06)'} 
+                  strokeWidth={isPassLine ? 1.5 : 1}
+                  strokeDasharray={isPassLine ? "4 4" : undefined}
+                />
+                <SvgText 
+                  x={paddingLeft - 8} 
+                  y={y + 4} 
+                  fill={isPassLine ? COLORS.accentCyan : COLORS.textDim} 
+                  fontSize={8} 
+                  fontWeight={isPassLine ? "700" : "500"}
+                  textAnchor="end"
+                >
+                  {val.toFixed(1)}
+                </SvgText>
+              </React.Fragment>
+            );
+          })}
+
+          {/* Bars and Labels */}
+          {data.map((item, idx) => {
+            const x = paddingLeft + idx * (barWidth + barSpacing) + barSpacing / 2;
+            const barHeight = (item.media / 10) * contentHeight;
+            const y = paddingTop + contentHeight - barHeight;
+
+            return (
+              <React.Fragment key={idx}>
+                <Rect
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={Math.max(barHeight, 2)}
+                  rx={4}
+                  ry={4}
+                  fill={getBarColor(item.media)}
+                />
+                
+                <SvgText
+                  x={x + barWidth / 2}
+                  y={y - 6}
+                  fill={item.media >= 7.0 ? COLORS.accentEmerald : (item.media >= 5.0 ? COLORS.accentAmber : COLORS.accentRuby)}
+                  fontSize={9}
+                  fontWeight="800"
+                  textAnchor="middle"
+                >
+                  {item.media.toFixed(1)}
+                </SvgText>
+
+                <SvgText
+                  x={x + barWidth / 2}
+                  y={paddingTop + contentHeight + 16}
+                  fill={COLORS.textSecondary}
+                  fontSize={9}
+                  fontWeight="600"
+                  textAnchor="middle"
+                >
+                  {item.disciplina}
+                </SvgText>
+              </React.Fragment>
+            );
+          })}
+        </Svg>
+      </ScrollView>
+    </View>
+  );
+}
 
 function NotaAccordion({ item }) {
   const [expanded, setExpanded] = useState(false);
@@ -191,6 +310,13 @@ export default function NotasScreen({ navigation }) {
     );
   }
 
+  const chartData = boletimData && boletimData.boletim
+    ? boletimData.boletim.map(item => ({
+        disciplina: item.nome.length > 5 ? item.nome.substring(0, 4).toUpperCase() : item.nome.toUpperCase(),
+        media: item.media === '--' ? 0.0 : parseFloat(String(item.media).replace(',', '.'))
+      }))
+    : [];
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={COLORS.bgBase} />
@@ -221,6 +347,27 @@ export default function NotasScreen({ navigation }) {
             <Text style={styles.heroLabel}>Frequência Total</Text>
           </View>
         </View>
+
+        {/* Gráfico de Desempenho */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Análise de Desempenho</Text>
+          <View style={styles.legendContainer}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: COLORS.accentEmerald }]} />
+              <Text style={styles.legendText}>≥ 7.0</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: COLORS.accentAmber }]} />
+              <Text style={styles.legendText}>5.0-6.9</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: COLORS.accentRuby }]} />
+              <Text style={styles.legendText}>&lt; 5.0</Text>
+            </View>
+          </View>
+        </View>
+        
+        <DesempenhoChart data={chartData} />
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Notas por Disciplina</Text>
@@ -433,6 +580,34 @@ const styles = StyleSheet.create({
   emptyText: { color: COLORS.textDim, fontSize: 12, fontStyle: 'italic', textAlign: 'center', marginVertical: 20 },
   retryBtn: { marginTop: 15, paddingVertical: 10, paddingHorizontal: 20, backgroundColor: COLORS.accentViolet, borderRadius: 8 },
   retryText: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  errorText: { color: COLORS.accentRuby, fontSize: 14, fontWeight: '600', marginTop: 10 }
+  errorText: { color: COLORS.accentRuby, fontSize: 14, fontWeight: '600', marginTop: 10 },
+  
+  chartWrapper: {
+    backgroundColor: COLORS.bgSurface,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.borderSubtle,
+    marginBottom: 30,
+  },
+  legendContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  legendDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  legendText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: COLORS.textMuted,
+  },
 });
 

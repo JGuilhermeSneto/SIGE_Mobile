@@ -245,7 +245,16 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.subGreeting}>{dashboardData.aluno.turma} · Turno {dashboardData.aluno.turno}</Text>
             </View>
             <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('Perfil')}>
-              <View style={styles.avatarCircle}><MaterialCommunityIcons name="account" size={26} color={COLORS.textMuted} /></View>
+              <View style={styles.avatarCircle}>
+                {dashboardData.aluno.foto_url ? (
+                  <Image 
+                    source={{ uri: dashboardData.aluno.foto_url }} 
+                    style={styles.avatarImage} 
+                  />
+                ) : (
+                  <MaterialCommunityIcons name="account" size={26} color={COLORS.textMuted} />
+                )}
+              </View>
             </TouchableOpacity>
           </View>
           
@@ -327,24 +336,33 @@ export default function HomeScreen({ navigation }) {
           
           <View style={[styles.widget, { flex: 1 }]}>
             <View style={styles.widgetHeader}>
-              <Text style={styles.widgetTitle}><MaterialCommunityIcons name="chart-arc" size={16} color={COLORS.accentEmerald} /> Desempenho</Text>
+              <Text style={styles.widgetTitle}><MaterialCommunityIcons name="chart-box-outline" size={16} color={COLORS.accentEmerald} /> Desempenho</Text>
             </View>
-            <View style={styles.chartMock}>
+            <View style={styles.chartContainer}>
               {dashboardData.desempenho_grafico && dashboardData.desempenho_grafico.length > 0 ? (
-                dashboardData.desempenho_grafico.slice(0, 4).map((item, idx) => (
-                  <View 
-                    key={idx} 
-                    style={[
-                      styles.bar, 
-                      { 
-                        height: `${item.media * 10}%`, 
-                        backgroundColor: idx === 0 ? COLORS.accentViolet : idx === 1 ? COLORS.accentEmerald : idx === 2 ? COLORS.accentAmber : COLORS.accentRuby 
-                      }
-                    ]} 
-                  />
-                ))
+                dashboardData.desempenho_grafico.slice(0, 4).map((item, idx) => {
+                  const mediaVal = parseFloat(item.media);
+                  const barColor = mediaVal >= 7.0 ? COLORS.accentEmerald : (mediaVal >= 5.0 ? COLORS.accentAmber : COLORS.accentRuby);
+                  return (
+                    <View key={idx} style={styles.chartColumn}>
+                      <Text style={styles.chartValue}>{mediaVal.toFixed(1)}</Text>
+                      <View style={styles.barContainerMini}>
+                        <View 
+                          style={[
+                            styles.barMini, 
+                            { 
+                              height: `${mediaVal * 10}%`, 
+                              backgroundColor: barColor 
+                            }
+                          ]} 
+                        />
+                      </View>
+                      <Text style={styles.chartLabel}>{item.disciplina}</Text>
+                    </View>
+                  );
+                })
               ) : (
-                <View style={[styles.bar, { height: '10%', backgroundColor: COLORS.borderMid }]} />
+                <Text style={styles.emptyText}>Sem dados</Text>
               )}
             </View>
           </View>
@@ -422,7 +440,8 @@ const styles = StyleSheet.create({
   greeting: { color: '#fff', fontSize: 26, fontWeight: '800' },
   nameDestaque: { color: COLORS.accentViolet },
   subGreeting: { color: COLORS.textSecondary, fontSize: 13 },
-  avatarCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.bgElevated, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.borderSubtle },
+  avatarCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.bgElevated, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.borderSubtle, overflow: 'hidden' },
+  avatarImage: { width: 44, height: 44, borderRadius: 22 },
   
   actionsRow: { flexDirection: 'row', gap: 12 },
   actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: COLORS.bgHover, paddingVertical: 8, paddingHorizontal: 15, borderRadius: 8, borderWidth: 1, borderColor: COLORS.borderMid },
@@ -476,7 +495,12 @@ const styles = StyleSheet.create({
   muralContent: { gap: 2 },
   muralT: { color: '#fff', fontSize: 13, fontWeight: '700' },
   muralS: { color: COLORS.textMuted, fontSize: 10 },
-  chartMock: { height: 40, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around' },
+  chartContainer: { height: 100, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', paddingTop: 10 },
+  chartColumn: { alignItems: 'center', justifyContent: 'flex-end', height: '100%', flex: 1 },
+  chartValue: { color: COLORS.textSecondary, fontSize: 9, fontWeight: '700', marginBottom: 4 },
+  barContainerMini: { height: 60, width: 8, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 4, justifyContent: 'flex-end', overflow: 'hidden' },
+  barMini: { width: '100%', borderRadius: 4 },
+  chartLabel: { color: COLORS.textMuted, fontSize: 8, fontWeight: '800', marginTop: 4 },
   bar: { width: 8, borderRadius: 4 },
 
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

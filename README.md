@@ -7,7 +7,8 @@ O SIGE Mobile é a extensão portátil do ecossistema SIGE, projetado para ofere
 Para alcançar o nível de fidelidade visual e performance exigido, utilizamos:
 
 - **Expo SDK 54**: Framework base para desenvolvimento robusto e multiplataforma.
-- **React Native SVG**: Essencial para as animações de anel neon, preenchimento de bordas e progresso circular.
+- **Expo Image Picker**: Para captura de foto via câmera e seleção da galeria de fotos do dispositivo.
+- **React Native SVG**: Essencial para gráficos de desempenho, anel neon e preenchimento de progresso circular.
 - **React Navigation**: Gerenciamento de rotas e transições de tela.
 - **React Native Animated API**: Controle fino de partículas, pulsos e efeitos de fade.
 - **Vector Icons (MaterialCommunityIcons)**: Iconografia moderna integrada.
@@ -57,9 +58,11 @@ Siga os comandos abaixo no seu terminal:
 - [x] **Login de Alta Fidelidade**: Fundo de partículas, anel rotativo na logo oficial e borda de card que reage à digitação.
 - [x] **Transições Dinâmicas**: Overlays de feedback para login bem-sucedido e logout seguro.
 - [x] **Navegação Acadêmica**: Acesso direto às notas reais (Boletim), frequências diárias e materiais gerados pelo backend.
-- [x] **Meu Perfil Premium (v3.1)**: Tela de Perfil do aluno de alta fidelidade portada a partir do layout Web, contendo gradientes SVG vetoriais nativos, avatar com cálculo dinâmico de iniciais, estatísticas de desempenho e um painel modal de edição de informações em tempo real com feedback toast.
+- [x] **Gráficos de Desempenho (v4.0)**: Gráficos de médias por disciplina desenhados nativamente em SVG com gradientes e cores dinâmicas (Verde para aprovação, Amarelo para recuperação, Vermelho para reprovação), contendo linhas de referência (7.0 / 5.0) e legenda explicativa, visíveis na Home e no Boletim.
+- [x] **Upload de Foto de Perfil (v4.0)**: Permite ao aluno abrir a câmera ou galeria do smartphone utilizando a biblioteca `expo-image-picker` para selecionar, cortar e subir sua foto de perfil via requisições Multipart, ou removê-la revertendo para o avatar com iniciais automáticas.
+- [x] **Meu Perfil Premium (v3.1)**: Tela de Perfil do aluno de alta fidelidade portada a partir do layout Web, contendo gradientes SVG vetoriais nativos, avatar com cálculo dinâmico de iniciais ou foto de perfil real, estatísticas de desempenho e um painel modal de edição de informações em tempo real com feedback toast.
 - [x] **Integração de Segurança SOC & WAF**: Compatibilidade com a camada de defesa ativa e controle de blacklist em tempo real do ecossistema SIGE.
-- [x] **Integração API com Redes Locais (v3.2)**: Validação e documentação de conectividade com a API de desenvolvimento via IP local (`192.168.18.90:8000`), evitando erros comuns de CORS/DisallowedHost no Expo Go.
+- [x] **Integração API com Redes Locais (v3.2)**: Validação e documentação de conectividade com a API de desenvolvimento via IP local (`192.168.18.90:8000`), evitando erros comuns de CORS/DisallowedHost no Expo Go, com todas as rotas de Aluno agora totalmente registradas no Django.
 - [x] **Preparação para Push Notifications (FCM/APNs)**: Configuração base conectada à nova infraestrutura de registro de Tokens na API Django do backend, pronta para disparos via Celery.
 - [x] **Integração Exclusiva Swagger**: O app está sendo desenvolvido sob o novo contrato da API (documentado em `/api/docs/mobile/`), contando com rotas específicas para otimização de banda.
 
