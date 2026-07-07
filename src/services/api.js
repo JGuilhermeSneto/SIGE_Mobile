@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://192.168.18.90:8080';
+const API_BASE_URL = 'http://192.168.18.90:8000';
 
 let AUTH_TOKEN = null;
 let REFRESH_TOKEN = null;
